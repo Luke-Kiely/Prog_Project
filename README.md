@@ -1,4 +1,4 @@
-Group Name: 1
+# Group Name: LEMC Analysis
 Name: Luke
 Name: Eoin
 Name: Mathew
