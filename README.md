@@ -44,3 +44,4 @@ Project Steps:
   9. Nvidia vs AMD
   10. Alphabet vs Meta
 
+- Timeframe: 2000 - 2026
