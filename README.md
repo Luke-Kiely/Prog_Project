@@ -49,3 +49,7 @@ Project Steps:
 
 
 Guidlines for what u need to run thr porject, steps for setting it up, libraries needed, steps to install them, what outcomes should look like, pictures. 
+
+Github codespace for coding the porject, push commits to 'online thingy', can also use VS code to push commits, codespace is where code should be. 
+
+He downloads the file, and will open it locally, will compare his outputs to the expected outputs. 
