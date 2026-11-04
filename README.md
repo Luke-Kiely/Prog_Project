@@ -45,3 +45,7 @@ Project Steps:
   10. Alphabet vs Meta
 
 - Timeframe: 2000 - 2026
+
+
+
+Guidlines for what u need to run thr porject, steps for setting it up, libraries needed, steps to install them, what outcomes should look like, pictures. 
