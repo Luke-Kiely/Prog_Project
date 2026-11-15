@@ -4,7 +4,8 @@ import pandas as pd
 import yfinance as yf
 
 #The 10 rival pairs from our group plan
-RIVAL_PAIRS=[("KO", "PEP"),      # soft drinks
+RIVAL_PAIRS=[
+    ("KO", "PEP"),      # soft drinks
     ("V", "MA"),        # card networks
     ("XOM", "CVX"),     # oil majors
     ("JPM", "BAC"),     # big banks
