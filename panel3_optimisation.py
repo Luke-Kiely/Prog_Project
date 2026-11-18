@@ -30,3 +30,20 @@ WINDOWS = [10, 20, 40, 60, 120, 250]        # lookback in trading days
 TRADING_DAYS = 252
 MIN_TRADES = 10                             # a best setting needs at least this many trades
 SHARPE_LIMIT = 1.5                          # fixed scale so pairs can be compared
+
+
+# Step 1: get the prices
+
+def load_prices():
+    """Download prices from Yahoo Finance, or use the saved copy if that fails."""
+    try:
+        prices = yf.download(TICKERS, start="2000-01-01", auto_adjust=True, progress=False)["Close"]
+        missing = [ticker for ticker in TICKERS if prices[ticker].isna().all()]
+        if missing:
+            raise ValueError(f"no prices for {missing}")
+        print("Using live prices from Yahoo Finance")
+    except Exception as e:
+        print("Yahoo Finance unavailable:", e)
+        prices = pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
+        print("Using the saved copy in", PRICE_FILE)
+    return prices
