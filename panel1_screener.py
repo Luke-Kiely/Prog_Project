@@ -22,8 +22,9 @@ RIVAL_PAIRS = [
 TICKERS = [ticker for pair in RIVAL_PAIRS for ticker in pair]
 
 START = "2000-01-01"
-END = None                                # None = up to today
+END = None                                
 PRICE_CACHE = Path("data") / "prices.csv"
+MIN_SHARED_DAYS = 500                     # a pair needs approx 2 years of prices in common
 
 def load_prices(tickers=TICKERS, start=START, end=END, cache=PRICE_CACHE, refresh=False):
     """Return daily closing prices: download once, then reuse the saved CSV."""
@@ -42,7 +43,8 @@ def hedge_ratio(y, x):
 
 def half_life(spread):
     """Days for a gap in the spread to close halfway. Infinite if it never closes."""
-    speed = spread.diff().cov(spread.shift(1)) / spread.shift(1).var()
+    yesterday = spread.shift(1)                       
+    speed = spread.diff().cov(yesterday) / yesterday.var()
     if speed >= 0:
         return np.inf
     return -np.log(2) / speed
@@ -50,7 +52,7 @@ def half_life(spread):
 def test_pair(log_prices, stock_a, stock_b):
     """Return a dictionary of statistics for one pair, or None if too little data."""
     both = log_prices[[stock_a, stock_b]].dropna()     # days when both traded
-    if len(both) < 500:                                # need ~2 years of shared prices
+    if len(both) < MIN_SHARED_DAYS:                                # need ~2 years of shared prices
         return None
     y, x = both[stock_a], both[stock_b]
     beta = hedge_ratio(y, x)
@@ -70,12 +72,12 @@ def screen_all_pairs(log_prices):
     for i in range(len(tickers)):
         for j in range(i + 1, len(tickers)):           # j > i: each pair only once
             result = test_pair(log_prices, tickers[i], tickers[j])
-            if result is not None:
-                rows.append(result)
+            if result:
+               rows.append(result)
     return pd.DataFrame(rows)
 
 if __name__ == "__main__":                            # only runs when run directly
     prices = load_prices()
     print(f"Prices: {prices.shape[0]} days x {prices.shape[1]} stocks")
     results = screen_all_pairs(np.log(prices))
-    print(results.nsmallest(10, "p_value")[["pair", "p_value", "correlation", "half_life"]])
+    print(results.nsmallest(10, "p_value")[["pair", "p_value", "correlation", "half_life"]].round(4))
