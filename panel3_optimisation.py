@@ -47,3 +47,47 @@ def load_prices():
         prices = pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
         print("Using the saved copy in", PRICE_FILE)
     return prices
+
+
+# Step 2: the trading strategy
+
+def get_spread(prices, split):
+    """Return the log price spread and the hedge ratio (fitted on in-sample days only)."""
+    stock_a, stock_b = prices.columns
+    log_a = np.log(prices[stock_a])
+    log_b = np.log(prices[stock_b])
+    hedge_ratio = log_a.iloc[:split].cov(log_b.iloc[:split]) / log_b.iloc[:split].var()
+    return log_a - hedge_ratio * log_b, hedge_ratio
+
+
+def get_positions(zscore, entry):
+    """Return the position each day: 1 = long the spread, -1 = short, 0 = no trade."""
+    position = 0
+    positions = []
+    for z in zscore:
+        if position == 0 and z > entry:
+            position = -1           # spread too wide, bet it closes
+        elif position == 0 and z < -entry:
+            position = 1            # spread too narrow, bet it widens
+        elif position == 1 and z >= 0:
+            position = 0            # back to normal so close the trade
+        elif position == -1 and z <= 0:
+            position = 0
+        positions.append(position)
+    return pd.Series(positions, index=zscore.index)
+
+
+def run_strategy(spread, window, entry, cost_bps):
+    """Return the position held, the daily move in the spread and the trading costs."""
+    zscore = (spread - spread.rolling(window).mean()) / spread.rolling(window).std()
+    held = get_positions(zscore, entry).shift(1)        # trade the day after the signal
+    move = spread - spread.shift(1)
+    costs = (held - held.shift(1)).abs() * cost_bps / 10000
+    return held, move, costs
+
+
+def get_sharpe(returns):
+    """Return the annualised Sharpe ratio (risk-free rate taken as 0)."""
+    if returns.std() == 0:
+        return 0                    # no trades, avoid dividing by zero
+    return returns.mean() / returns.std() * np.sqrt(TRADING_DAYS)
