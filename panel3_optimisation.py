@@ -91,3 +91,43 @@ def get_sharpe(returns):
     if returns.std() == 0:
         return 0                    # no trades, avoid dividing by zero
     return returns.mean() / returns.std() * np.sqrt(TRADING_DAYS)
+
+
+# Step 3: test every setting
+
+def make_sharpe_table(spread, split, cost_bps):
+    """Test every entry and window and return one row of results for each."""
+    rows = []
+    for window in WINDOWS:
+        for entry in ENTRIES:
+            held, move, costs = run_strategy(spread, window, entry, cost_bps)
+            daily_return = held * move - costs
+            new_trade = (held != 0) & (held.shift(1) == 0)
+            rows.append({
+                "window": window,
+                "entry": entry,
+                "in_sample": get_sharpe(daily_return.iloc[:split]),
+                "out_of_sample": get_sharpe(daily_return.iloc[split:]),
+                "trades_in": new_trade.iloc[:split].sum(),
+                "trades_out": new_trade.iloc[split:].sum(),
+            })
+    return pd.DataFrame(rows)
+
+
+def luck_test(spread, split, best, cost_bps, n_tries=500):
+    """Return how often pure luck does as well as the best setting out-of-sample.
+
+    Each try flips a coin for every day to decide if that day's result was a gain or a loss.
+    Under 5% means the result is probably not luck.
+    """
+    held, move, costs = run_strategy(spread, int(best["window"]), best["entry"], cost_bps)
+    daily_return = (held * move - costs).iloc[split:]
+    real_sharpe = get_sharpe(daily_return)
+
+    rng = np.random.default_rng(42)
+    as_good = 0
+    for _ in range(n_tries):
+        coin = rng.choice([-1, 1], size=len(daily_return))
+        if get_sharpe(daily_return * coin) >= real_sharpe:
+            as_good += 1
+    return as_good / n_tries
