@@ -80,9 +80,24 @@ def screen_all_pairs(log_prices):
                 rows.append(result)
     return pd.DataFrame(rows)
 
-if __name__ == "__main__":            # only runs when run directly
+def make_heatmap(results):
+    """Grid of p-values for every pair: darker = smaller p-value."""
+    n = len(TICKERS)
+    colours = np.full((n, n), np.nan)                           # empty 20x20 grid (diagonal stays blank)
+    for _, row in results.iterrows():
+        stock_a, stock_b = row["pair"].split(" / ")
+        i, j = TICKERS.index(stock_a), TICKERS.index(stock_b)   # row and column of each stock
+        colours[i, j] = colours[j, i] = row["p_value"]          # same pair in both halves
+    fig = go.Figure(go.Heatmap(z=colours, x=TICKERS, y=TICKERS,
+                               colorscale="Blues_r", zmin=0, zmax=1, xgap=1, ygap=1))
+    fig.update_layout(title="Which pairs are tethered?", height=700,
+                      yaxis=dict(autorange="reversed", scaleanchor="x"))
+    return fig
+
+if __name__ == "__main__":                             # only runs when run directly
     prices = load_prices()
     print(f"Prices: {prices.shape[0]} days x {prices.shape[1]} stocks")
     results = screen_all_pairs(np.log(prices))
     # the 10 most tethered of 190 pairs
     print(results.nsmallest(10, "p_value")[["pair", "p_value", "correlation", "half_life"]].round(4))
+    make_heatmap(results).write_html("heatmap.html")   # open this file to check the heatmap
