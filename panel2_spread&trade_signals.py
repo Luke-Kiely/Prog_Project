@@ -50,14 +50,34 @@ def hover_text(t, a, b):
   action = f"Buy {a}, Short {b}" if t.side == 1 else f"Short {a}, Buy {b}"
   return (f"<b>(actions)</b><br>Entry: {t/entry:%d %b %Y}<br>" f"Exit: {t.exit: %d %b %Y}{' (stop-loss)' if t.stopped else''}<br>" f"Held: {t.days} days<br><b>P&L: {t.pnl:+.1%}</b>")
                                                                         
-def view_stats(a, b, start, end): 
+def make_figure(label, year_from, year_to):
+  a, b = label.split(" / ")
   sig, trades = pair_data(a, b)
-  visible = sig.loc[start:end, [a, "fair"]]
-  y_range = [float(visible.min().min() * 0.97), float(visible.max().max() * 1.03)] if len(visible) else no_update
-  shown = trades[(trades.entry >= visible.index.min()) & (trades.entry <= visible.index.max())]
-  if shown.empty: 
-    return f"<b>{a} vs {b}</b> | no trades in this period", y_range
-  total = (1 + shown.pnl).prod() - 1
-  return (f"<b>{a} vs {b}</b> | {len(shown)} trades | {(shown.pnl > 0).mean():.0%} winners | "
-          f"{total: +.1%} total return (before costs)"), y_range
+  year_from, year_to = sorted([int(year_from), int(year_to)])
+  sig = sig.loc[str(year_from):str(year_to)]
+  trades = trades[trades.entry.between(sig.index.min(), sig.index.max()]
+  if trades.empty:
+    title = f"<b>{a} vs {b}</b> | no trades in year {year_from}-{year_to}"
+  else: 
+    title = (f"<b>{a} vs {b}</b> | {year_from}-{year_to} | {len(trades)} trades | f"{(trades.pnl > 0).mean():.0%} winners | " f"{(1 + trades.pnl).prod() - 1:+.1%} total return (before costs)")
+  text = [hover_text(t, a, b) for t in trades.itertuples()]
+  is_long = trades.side == 1
+
+  fig = make_subplots(rows=2, cols=1, shares_xaxes=True, vertical_spacing=0.06, row_heights=[0.62, 0.38])
+  fig.add_scatter(x=sig.index, y=sig.fair, name=f"{a} fair value (based on {b})", customdata=sig[b], line=dict(color=COLOURS["fair"], width=15, dash="dot"), row=1, col=1, hovertemplate=f"Fair value: $%{{y:.2f}}<br>{b}: $% {{customdata:.2f}}<extra></extra>")
+  fig.add_scatter(x=sig.index, y=sig[a], name=f"{a} price", line=dict(color=COLOURS["a"], width=2), fill="tonexty", fillcolor="rgba(42,120,214,0.12)", row=1, col=1, hovertemplate=f"{a}: $%{{y:2f}}<extra></extra>")
+  fig.add_scatter(x=trades.entry, y=sig[a].reindex(trades.entry), mode="markers", name="Entry (▲ buy / ▼ short)", text=text, hovertemplate="%{text}<extra></extra>", marker=dict(size=12, line=dict(width=1.5, color="white"), symbol=np.where(is_long, "triangle-up", "triangle-down"), color=np.where(is_long COLOURS["long"], COLOURS["Short"])), row=1, col=1)
+  fig.add_scatter(x=sig.index, y=sig.z, name="Z-score", showlegend=False, line=dict(color=COLOURS["ink"], width=1.5), hovertemplate="z = %{y:.2f}<extra></extra>", row=2, col=1)
+  for y, colour, label, pos in [(ENTRY_Z, COLOURS["short"], f"{a} expensive: short {a}", "top left"), (-ENTRY_Z, COLOURS["long"], f"{a} cheap: buy {a}", "bottom left"), (0, COLOURS["fair"], "", "top left")]:
+    fig.add_hline(y=y, line=dict(color=colour, width=1, dash="dash" if y else "solid"), row=2, col=1, annotation_text=label, annotation_positions=pos, annotation_font_color=colour)
+  fig.update_layout(title=dict(text=title, x=0.01), height=620, template="plotly_white", hovermode="closest", margin=dict(t=90, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
+  fig.update_yaxes(title_text=f"{a} price", tickprefix="$", row=1, col=1)
+  fig.update_yaxes(title_text="Gap (z-score)", zeroline=False, row=2, col=1)
+  return fig
+
+LABELS = [f"{a} / {b}" for a, b in RIVAL_PAIRS]
+
+def build_panel2():
+
+  
 
