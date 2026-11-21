@@ -1,9 +1,9 @@
 """Panel 2 - Spread & Trade Signals. Top: A's price vs the fair value implied by B. It marks the trades. Bottom: z-score of the gap"""
 
+import gradio as gr
 import numpy as np
 import pandas as pd
 import yfinance as yf 
-from dash import Dash, Input, Output, Patch, State, callback, dcc, html, no_update
 from plotly.subplots import make_subplots
 
 RIVAL_PAIRS = [("KO", "PEP"), ("V", "MA"), ("XOM", "CVX"), ("JPM", "BAC"), ("HD", "LOW"), ("WMT", "COST"), ("MCD", "QSR"), ("UPS", "FDX"), ("NVDA", "AMD"), ("GOOGL", "META")] 
