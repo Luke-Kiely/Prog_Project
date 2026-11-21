@@ -131,3 +131,80 @@ def luck_test(spread, split, best, cost_bps, n_tries=500):
         if get_sharpe(daily_return * coin) >= real_sharpe:
             as_good += 1
     return as_good / n_tries
+
+# Step 4: chart and summary table
+
+def draw_surface(table, best, sample, title):
+    """3D surface of the Sharpe ratio, with a line through the best in-sample setting."""
+    column = "in_sample" if sample == "In-sample" else "out_of_sample"
+    grid = table.pivot_table(index="window", columns="entry", values=column)
+    limit = max(SHARPE_LIMIT, table["in_sample"].abs().max(), table["out_of_sample"].abs().max())
+
+    fig = go.Figure()
+    fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=grid.values, colorscale="RdBu",
+                             cmin=-limit, cmax=limit, colorbar_title="Sharpe"))
+    fig.add_trace(go.Scatter3d(x=[best["entry"]] * 2, y=[best["window"]] * 2, z=[-limit, limit],
+                               mode="lines", line=dict(color="black", width=8),
+                               name="Best in-sample setting"))   # vertical line, never hidden
+    fig.update_layout(title=title, height=650, margin=dict(l=0, r=0, t=50, b=0),
+                      scene=dict(xaxis_title="Entry (z-score)", yaxis_title="Lookback (days)",
+                                 zaxis_title="Sharpe", zaxis_range=[-limit, limit],
+                                 camera=dict(eye=dict(x=1.6, y=-1.6, z=0.9))))
+    return fig
+
+
+def make_summary(best, hedge_ratio, luck):
+    """Return a small table with the results for the best in-sample setting."""
+    return pd.DataFrame({
+        "Measure": ["Best entry threshold", "Best lookback window", "Hedge ratio",
+                    "Sharpe in-sample", "Sharpe out-of-sample",
+                    "Trades in-sample", "Trades out-of-sample",
+                    "Chance luck does as well (out-of-sample)"],
+        "Value": [f"{best['entry']} sd", f"{best['window']:.0f} days", f"{hedge_ratio:.2f}",
+                  f"{best['in_sample']:.2f}", f"{best['out_of_sample']:.2f}",
+                  f"{best['trades_in']:.0f}", f"{best['trades_out']:.0f}",
+                  f"{luck:.0%}"],
+    })
+
+
+def update_panel(pair_name, sample, in_sample_pct, cost_bps):
+    """Runs every time a control changes and returns the chart and summary table."""
+    prices = all_prices[PAIRS[pair_name]].dropna()      # days where both stocks traded
+    split = int(len(prices) * in_sample_pct / 100)
+    spread, hedge_ratio = get_spread(prices, split)
+    table = make_sharpe_table(spread, split, cost_bps)
+    enough_trades = table[table["trades_in"] >= MIN_TRADES]    # ignore settings that barely traded
+    best = enough_trades.loc[enough_trades["in_sample"].idxmax()]
+    luck = luck_test(spread, split, best, cost_bps)
+
+    change = "falls" if best["out_of_sample"] < best["in_sample"] else "rises"
+    title = (f"{pair_name}: best in-sample Sharpe of {best['in_sample']:.2f} "
+             f"{change} to {best['out_of_sample']:.2f} after {prices.index[split]:%b %Y}")
+    fig = draw_surface(table, best, sample, title)
+    return fig, make_summary(best, hedge_ratio, luck)
+
+
+# Main body
+
+all_prices = load_prices()
+
+# check the numbers before starting the app
+fig, summary = update_panel("KO vs PEP", "In-sample", 70, 5)
+print("=== PANEL 3 CHECK: KO vs PEP, 70% in-sample, 5 bps cost ===")
+print(summary.to_string(index=False))
+
+demo = gr.Interface(
+    fn=update_panel,
+    inputs=[gr.Dropdown(list(PAIRS), value="KO vs PEP", label="Rival pair"),
+            gr.Radio(["In-sample", "Out-of-sample"], value="In-sample", label="Show"),
+            gr.Slider(50, 90, value=70, step=5, label="In-sample period (% of days)"),
+            gr.Slider(0, 20, value=5, step=1, label="Trading cost per trade (basis points)")],
+    outputs=[gr.Plot(label="Sharpe ratio for every setting"),
+             gr.Dataframe(label="Best in-sample setting")],
+    title="Panel 3: Does the best strategy still work out-of-sample?",
+    live=True,                          # redraw as soon as a control changes
+    flagging_mode="never",
+    description="Drag to rotate the chart and hover for exact values. Black line = best "
+                "in-sample setting. Source: Yahoo Finance via yfinance.",
+)
+demo.launch()
