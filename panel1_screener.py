@@ -26,16 +26,19 @@ END = None                                # none up to today
 PRICE_CACHE = Path("data") / "prices.csv"
 MIN_SHARED_DAYS = 500                     # ~2 years of trading days- fewer is too little to test
 
-def load_prices(tickers=TICKERS, start=START, end=END, cache=PRICE_CACHE, refresh=False):
-    """Return daily closing prices: download once, then reuse the saved CSV."""
-    if cache.exists() and not refresh:
-        prices = pd.read_csv(cache, index_col=0, parse_dates=True)
-    else:
+def load_prices(tickers=TICKERS, start=START, end=END, cache=PRICE_CACHE):
+    """Download the latest prices from Yahoo Finance. If that fails, use the saved CSV."""
+    try:
         prices = yf.download(tickers, start=start, end=end,
                              auto_adjust=True, progress=False)["Close"]
+        if prices.empty or prices.isna().all().any():   # nothing back, or a stock missing
+            raise ValueError("incomplete download")
         cache.parent.mkdir(exist_ok=True)
-        prices.to_csv(cache)
-    return prices[tickers].dropna(how="all")   # drop days when nothing traded
+        prices.to_csv(cache)                             # keep the backup up to date
+    except Exception as error:
+        print("Yahoo Finance unavailable, using saved copy:", error)
+        prices = pd.read_csv(cache, index_col=0, parse_dates=True)
+    return prices[tickers].dropna(how="all")             # drop days when nothing traded
 
 def hedge_ratio(y, x):
     """How many shares of x to hold against one share of y (slope of y on x)."""
