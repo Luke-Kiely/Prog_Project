@@ -80,16 +80,20 @@ def screen_all_pairs(log_prices):
                 rows.append(result)
     return pd.DataFrame(rows)
 
-def make_heatmap(results):
+def make_heatmap(results, cutoff=0.05):
     """Grid of p-values for every pair: darker = smaller p-value."""
     n = len(TICKERS)
     colours = np.full((n, n), np.nan)                           # empty 20x20 grid (diagonal stays blank)
+    dots = np.full((n, n), "", dtype=object)                    # a dot on the tethered pairs
     for _, row in results.iterrows():
         stock_a, stock_b = row["pair"].split(" / ")
         i, j = TICKERS.index(stock_a), TICKERS.index(stock_b)   # row and column of each stock
         colours[i, j] = colours[j, i] = row["p_value"]          # same pair in both halves
+        if row["p_value"] < cutoff:
+            dots[i, j] = dots[j, i] = "●"
     fig = go.Figure(go.Heatmap(z=colours, x=TICKERS, y=TICKERS,
-                               colorscale="Blues_r", zmin=0, zmax=1, xgap=1, ygap=1))
+                               colorscale="Blues_r", zmin=0, zmax=1, xgap=1, ygap=1,
+                               text=dots, texttemplate="%{text}", textfont=dict(color="white")))
     fig.update_layout(title="Which pairs are tethered?", height=700,
                       yaxis=dict(autorange="reversed", scaleanchor="x"))
     return fig
