@@ -100,6 +100,12 @@ def make_heatmap(results, cutoff=0.05, half=False):
                                text=dots, texttemplate="%{text}", textfont=dict(color="white")))
     fig.update_layout(title="Which pairs are tethered?", height=700,
                       yaxis=dict(autorange="reversed", scaleanchor="x"))
+    for stock_a, stock_b in RIVAL_PAIRS:                        # outline the 10 rival pairs
+        i, j = TICKERS.index(stock_a), TICKERS.index(stock_b)
+        cells = [(i, j)] if half else [(i, j), (j, i)]          # upper half only, or both halves
+        for r, c in cells:
+            fig.add_shape(type="rect", x0=c - 0.5, x1=c + 0.5, y0=r - 0.5, y1=r + 0.5,
+                          line=dict(color="black", width=2))
     return fig
 
 if __name__ == "__main__":                                              # only runs when run directly
