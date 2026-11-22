@@ -63,19 +63,17 @@ def hover_text(t, a, b):
   return (f"<b>{action}</b><br>Entry: {t.entry:%d %b %Y}<br>" f"Exit: {t.exit:%d %b %Y}{' (stop-loss)' if t.stopped else''}<br>" f"Held: {t.days} days<br><b>P&L: {t.pnl:+.1%}</b>")
                                                                         
 def make_figure(label, year_from, year_to):
-  a, b = label.split(" / ")
-  sig, trades = pair_data(a, b)
-  year_from, year_to = sorted([int(year_from), int(year_to)])
-  sig = sig.loc[str(year_from):str(year_to)]
-  trades = trades[trades.entry.between(sig.index.min(), sig.index.max())]
+  a, b, sig, trades, year_from, year_to = window(label, year_from, year_to)
   if trades.empty:
     title = f"<b>{a} vs {b}</b> | no trades in year {year_from}-{year_to}"
   else: 
-    title = (f"<b>{a} vs {b}</b> | {year_from}-{year_to} | {len(trades)} trades |" f"{(trades.pnl > 0).mean():.0%} winners | " f"{(1 + trades.pnl).prod() - 1:+.1%} total return (before costs)")
+    title = (f"<b>{a} vs {b}</b> | {year_from}-{year_to} | {len(trades)} trades | " f"{(trades.pnl > 0).mean():.0%} winners | " f"{(1 + trades.pnl).prod() - 1:+.1%} total return (before costs)")
   text = [hover_text(t, a, b) for t in trades.itertuples()]
   is_long = trades.side == 1
+  equity_x = [sig.index.min()] + list(trades.exit)+ [sig.index.max()]
+  equity_y = [0] + list((1 + trades.pnl).cumprod() - 1) + [(1 + trades.pnl).prod() - 1]
 
-  fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.06, row_heights=[0.62, 0.38])
+  fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.05, row_heights=[0.5, 0.27, 0.23])
   fig.add_scatter(x=sig.index, y=sig.fair, name=f"{a} fair value (based on {b})", customdata=sig[b], line=dict(color=COLOURS["fair"], width=1.5, dash="dot"), row=1, col=1, hovertemplate=f"Fair value: $%{{y:.2f}}<br>{b}: $%{{customdata:.2f}}<extra></extra>")
   fig.add_scatter(x=sig.index, y=sig[a], name=f"{a} price", line=dict(color=COLOURS["a"], width=2), fill="tonexty", fillcolor="rgba(42,120,214,0.12)", row=1, col=1, hovertemplate=f"{a}: $%{{y:.2f}}<extra></extra>")
   fig.add_scatter(x=trades.entry, y=sig[a].reindex(trades.entry), mode="markers", name="Entry (▲ buy / ▼ short)", text=text, hovertemplate="%{text}<extra></extra>", marker=dict(size=12, line=dict(width=1.5, color="white"), symbol=np.where(is_long, "triangle-up", "triangle-down"), color=np.where(is_long, COLOURS["long"], COLOURS["short"])), row=1, col=1)
@@ -83,9 +81,12 @@ def make_figure(label, year_from, year_to):
   fig.add_scatter(x=sig.index, y=sig.z, name="Z-score", showlegend=False, line=dict(color=COLOURS["ink"], width=1.5), hovertemplate="z = %{y:.2f}<extra></extra>", row=2, col=1)
   for y, colour, label, pos in [(ENTRY_Z, COLOURS["short"], f"{a} expensive: short {a}", "top left"), (-ENTRY_Z, COLOURS["long"], f"{a} cheap: buy {a}", "bottom left"), (0, COLOURS["fair"], "", "top left")]:
     fig.add_hline(y=y, line=dict(color=colour, width=1, dash="dash" if y else "solid"), row=2, col=1, annotation_text=label, annotation_position=pos, annotation_font_color=colour)
-  fig.update_layout(title=dict(text=title, x=0.01), height=620, template="plotly_white", hovermode="closest", margin=dict(t=90, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
+  fig.add_scatter(x=equity_x, y=equity_y, name="Strategy Return", showlegend=False, line=dict(color=COLOURS["a"], width=2, shape="hv"), fill="tozeroy", fillcolor="rgba(42,120,214,0.12)", hovertemplate="Strategy so far: %{y:.1%}<extra></extra>", row=3, col=1)
+  fig.add_hline(y=0, line=dict(color=COLOURS["fair"], width=1), row=3, col=1)
+  fig.update_layout(title=dict(text=title, x=0.01), height=760, template="plotly_white", hovermode="closest", margin=dict(t=90, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
   fig.update_yaxes(title_text=f"{a} price", tickprefix="$", row=1, col=1)
   fig.update_yaxes(title_text="Gap (z-score)", zeroline=False, row=2, col=1)
+  fig.update_yaxes(title_text="Strategy Return", tickformat="+.0%", zeroline=False, row=3, col=1)
   return fig
 
 LABELS = [f"{a} / {b}" for a, b in RIVAL_PAIRS]
