@@ -53,7 +53,10 @@ def pair_data(a, b):
 def window(label, year_from, year_to):
   a, b = label.split(" / ")
   sig, trades = pair_data(a, b)
-  year_from
+  year_from, year_to = sorted([int(year_from), int(year_to)])
+  sig = sig.loc[str(year_from):str(year_to)]
+  trades = trades[trades.entry.between(sig.index.min(), sig.index.max())]
+  return a, b, sig, trades, year_from, year_to
 
 def hover_text(t, a, b):
   action = f"Buy {a}, Short {b}" if t.side == 1 else f"Short {a}, Buy {b}"
