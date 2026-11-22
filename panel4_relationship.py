@@ -33,3 +33,20 @@ Z_CAP = 3  # colour scale runs from -3 to +3
 MIN_DAYS = 20  # a year needs at least this many trading days to be used
 FIRST_YEAR = 2001  # starts at 2001 as hedge ratio needs a full year of data to start
 PLAY_SECONDS = 1.0  # seconds per year while playing
+
+
+def load_prices() -> pd.DataFrame:
+    """Gets the daily closing prices for all tickers, either from a saved CSV or by downloading."""
+    if PRICE_FILE.exists():
+        print("Using saved copy:", PRICE_FILE)
+        return pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
+    try:
+        prices = yf.download(TICKERS, start=START, auto_adjust=True, progress=False)["Close"]
+    except Exception as err:
+        raise RuntimeError(f"Could not download prices ({err}).") from err
+    prices = prices.dropna(axis=1, how="all")  # drops tickers that failed to download
+    if len(prices.columns) == len(TICKERS):  # only saves if every ticker is downloaded
+        PRICE_FILE.parent.mkdir(exist_ok=True)
+        prices.to_csv(PRICE_FILE)
+        print("Downloaded once and saved:", PRICE_FILE)
+    return prices
