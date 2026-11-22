@@ -47,3 +47,164 @@ def load_prices():
         prices = pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
         print("Using the saved copy in", PRICE_FILE)
     return prices
+
+
+# Step 2: the trading strategy
+
+def get_spread(prices, split):
+    """Return the log price spread and the hedge ratio (fitted on in-sample days only)."""
+    stock_a, stock_b = prices.columns
+    log_a = np.log(prices[stock_a])
+    log_b = np.log(prices[stock_b])
+    hedge_ratio = log_a.iloc[:split].cov(log_b.iloc[:split]) / log_b.iloc[:split].var()
+    return log_a - hedge_ratio * log_b, hedge_ratio
+
+
+def get_positions(zscore, entry):
+    """Return the position each day: 1 = long the spread, -1 = short, 0 = no trade."""
+    position = 0
+    positions = []
+    for z in zscore:
+        if position == 0 and z > entry:
+            position = -1           # spread too wide, bet it closes
+        elif position == 0 and z < -entry:
+            position = 1            # spread too narrow, bet it widens
+        elif position == 1 and z >= 0:
+            position = 0            # back to normal so close the trade
+        elif position == -1 and z <= 0:
+            position = 0
+        positions.append(position)
+    return pd.Series(positions, index=zscore.index)
+
+
+def run_strategy(spread, window, entry, cost_bps):
+    """Return the position held, the daily move in the spread and the trading costs."""
+    zscore = (spread - spread.rolling(window).mean()) / spread.rolling(window).std()
+    held = get_positions(zscore, entry).shift(1)        # trade the day after the signal
+    move = spread - spread.shift(1)
+    costs = (held - held.shift(1)).abs() * cost_bps / 10000
+    return held, move, costs
+
+
+def get_sharpe(returns):
+    """Return the annualised Sharpe ratio (risk-free rate taken as 0)."""
+    if returns.std() == 0:
+        return 0                    # no trades, avoid dividing by zero
+    return returns.mean() / returns.std() * np.sqrt(TRADING_DAYS)
+
+
+# Step 3: test every setting
+
+def make_sharpe_table(spread, split, cost_bps):
+    """Test every entry and window and return one row of results for each."""
+    rows = []
+    for window in WINDOWS:
+        for entry in ENTRIES:
+            held, move, costs = run_strategy(spread, window, entry, cost_bps)
+            daily_return = held * move - costs
+            new_trade = (held != 0) & (held.shift(1) == 0)
+            rows.append({
+                "window": window,
+                "entry": entry,
+                "in_sample": get_sharpe(daily_return.iloc[:split]),
+                "out_of_sample": get_sharpe(daily_return.iloc[split:]),
+                "trades_in": new_trade.iloc[:split].sum(),
+                "trades_out": new_trade.iloc[split:].sum(),
+            })
+    return pd.DataFrame(rows)
+
+
+def luck_test(spread, split, best, cost_bps, n_tries=500):
+    """Return how often pure luck does as well as the best setting out-of-sample.
+
+    Each try flips a coin for every day to decide if that day's result was a gain or a loss.
+    Under 5% means the result is probably not luck.
+    """
+    held, move, costs = run_strategy(spread, int(best["window"]), best["entry"], cost_bps)
+    daily_return = (held * move - costs).iloc[split:]
+    real_sharpe = get_sharpe(daily_return)
+
+    rng = np.random.default_rng(42)
+    as_good = 0
+    for _ in range(n_tries):
+        coin = rng.choice([-1, 1], size=len(daily_return))
+        if get_sharpe(daily_return * coin) >= real_sharpe:
+            as_good += 1
+    return as_good / n_tries
+
+# Step 4: chart and summary table
+
+def draw_surface(table, best, sample, title):
+    """3D surface of the Sharpe ratio, with a line through the best in-sample setting."""
+    column = "in_sample" if sample == "In-sample" else "out_of_sample"
+    grid = table.pivot_table(index="window", columns="entry", values=column)
+    limit = max(SHARPE_LIMIT, table["in_sample"].abs().max(), table["out_of_sample"].abs().max())
+
+    fig = go.Figure()
+    fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=grid.values, colorscale="RdBu",
+                             cmin=-limit, cmax=limit, colorbar_title="Sharpe"))
+    fig.add_trace(go.Scatter3d(x=[best["entry"]] * 2, y=[best["window"]] * 2, z=[-limit, limit],
+                               mode="lines", line=dict(color="black", width=8),
+                               name="Best in-sample setting"))   # vertical line, never hidden
+    fig.update_layout(title=title, height=650, margin=dict(l=0, r=0, t=50, b=0),
+                      scene=dict(xaxis_title="Entry (z-score)", yaxis_title="Lookback (days)",
+                                 zaxis_title="Sharpe", zaxis_range=[-limit, limit],
+                                 camera=dict(eye=dict(x=1.6, y=-1.6, z=0.9))))
+    return fig
+
+
+def make_summary(best, hedge_ratio, luck):
+    """Return a small table with the results for the best in-sample setting."""
+    return pd.DataFrame({
+        "Measure": ["Best entry threshold", "Best lookback window", "Hedge ratio",
+                    "Sharpe in-sample", "Sharpe out-of-sample",
+                    "Trades in-sample", "Trades out-of-sample",
+                    "Chance luck does as well (out-of-sample)"],
+        "Value": [f"{best['entry']} sd", f"{best['window']:.0f} days", f"{hedge_ratio:.2f}",
+                  f"{best['in_sample']:.2f}", f"{best['out_of_sample']:.2f}",
+                  f"{best['trades_in']:.0f}", f"{best['trades_out']:.0f}",
+                  f"{luck:.0%}"],
+    })
+
+
+def update_panel(pair_name, sample, in_sample_pct, cost_bps):
+    """Runs every time a control changes and returns the chart and summary table."""
+    prices = all_prices[PAIRS[pair_name]].dropna()      # days where both stocks traded
+    split = int(len(prices) * in_sample_pct / 100)
+    spread, hedge_ratio = get_spread(prices, split)
+    table = make_sharpe_table(spread, split, cost_bps)
+    enough_trades = table[table["trades_in"] >= MIN_TRADES]    # ignore settings that barely traded
+    best = enough_trades.loc[enough_trades["in_sample"].idxmax()]
+    luck = luck_test(spread, split, best, cost_bps)
+
+    change = "falls" if best["out_of_sample"] < best["in_sample"] else "rises"
+    title = (f"{pair_name}: best in-sample Sharpe of {best['in_sample']:.2f} "
+             f"{change} to {best['out_of_sample']:.2f} after {prices.index[split]:%b %Y}")
+    fig = draw_surface(table, best, sample, title)
+    return fig, make_summary(best, hedge_ratio, luck)
+
+
+# Main body
+
+all_prices = load_prices()
+
+# check the numbers before starting the app
+fig, summary = update_panel("KO vs PEP", "In-sample", 70, 5)
+print("=== PANEL 3 CHECK: KO vs PEP, 70% in-sample, 5 bps cost ===")
+print(summary.to_string(index=False))
+
+demo = gr.Interface(
+    fn=update_panel,
+    inputs=[gr.Dropdown(list(PAIRS), value="KO vs PEP", label="Rival pair"),
+            gr.Radio(["In-sample", "Out-of-sample"], value="In-sample", label="Show"),
+            gr.Slider(50, 90, value=70, step=5, label="In-sample period (% of days)"),
+            gr.Slider(0, 20, value=5, step=1, label="Trading cost per trade (basis points)")],
+    outputs=[gr.Plot(label="Sharpe ratio for every setting"),
+             gr.Dataframe(label="Best in-sample setting")],
+    title="Panel 3: Does the best strategy still work out-of-sample?",
+    live=True,                          # redraw as soon as a control changes
+    flagging_mode="never",
+    description="Drag to rotate the chart and hover for exact values. Black line = best "
+                "in-sample setting. Source: Yahoo Finance via yfinance.",
+)
+demo.launch()
