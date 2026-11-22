@@ -50,3 +50,9 @@ def load_prices() -> pd.DataFrame:
         prices.to_csv(PRICE_FILE)
         print("Downloaded once and saved:", PRICE_FILE)
     return prices
+
+
+# Load the data
+PRICES = load_prices()  # loaded once when the panel starts
+print("Prices loaded (days, tickers):", PRICES.shape)
+LAST_YEAR = PRICES.index.max().year  # last year in the data, not today's year
