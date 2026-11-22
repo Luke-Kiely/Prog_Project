@@ -80,7 +80,7 @@ def screen_all_pairs(log_prices):
                 rows.append(result)
     return pd.DataFrame(rows)
 
-def make_heatmap(results, cutoff=0.05):
+def make_heatmap(results, cutoff=0.05, half=False):
     """Grid of p-values for every pair: darker = smaller p-value."""
     n = len(TICKERS)
     colours = np.full((n, n), np.nan)                           # empty 20x20 grid (diagonal stays blank)
@@ -91,6 +91,10 @@ def make_heatmap(results, cutoff=0.05):
         colours[i, j] = colours[j, i] = row["p_value"]          # same pair in both halves
         if row["p_value"] < cutoff:
             dots[i, j] = dots[j, i] = "●"
+    if half:                                                    # hide repeated half
+        lower = np.tril(np.ones((n, n), dtype=bool))            # True on and below the diagonal
+        colours[lower] = np.nan
+        dots[lower] = ""    
     fig = go.Figure(go.Heatmap(z=colours, x=TICKERS, y=TICKERS,
                                colorscale="Blues_r", zmin=0, zmax=1, xgap=1, ygap=1,
                                text=dots, texttemplate="%{text}", textfont=dict(color="white")))
@@ -98,10 +102,11 @@ def make_heatmap(results, cutoff=0.05):
                       yaxis=dict(autorange="reversed", scaleanchor="x"))
     return fig
 
-if __name__ == "__main__":                             # only runs when run directly
+if __name__ == "__main__":                                              # only runs when run directly
     prices = load_prices()
     print(f"Prices: {prices.shape[0]} days x {prices.shape[1]} stocks")
     results = screen_all_pairs(np.log(prices))
     # the 10 most tethered of 190 pairs
     print(results.nsmallest(10, "p_value")[["pair", "p_value", "correlation", "half_life"]].round(4))
-    make_heatmap(results).write_html("heatmap.html")   # open this file to check the heatmap
+    make_heatmap(results).write_html("heatmap.html")                    # open this file to check the heatmap
+    make_heatmap(results, half=True).write_html("heatmap_half.html")    # upper half only
