@@ -1,5 +1,7 @@
 """Panel 2 - Spread & Trade Signals. Top: A's price vs the fair value implied by B. It marks the trades. Bottom: z-score of the gap"""
 
+from functools import lru_cache
+
 import gradio as gr
 import numpy as np
 import pandas as pd
@@ -13,6 +15,7 @@ ENTRY_Z = 2.0
 STOP_Z = 3.5
 COLOURS = {"a": "#2a78d6", "fair": "#898781", "long": "#0ca30c", "short": "#d03b3b", "ink": "#52514e"}
 
+@lru_cache(maxsize=1)
 def load_prices():
   tickers = [t for pair in RIVAL_PAIRS for t in pair]
   return yf.download(tickers, start="2000-01-01", auto_adjust=True, progress=False)["Close"]
@@ -41,10 +44,16 @@ def find_trades(sig, a, b):
       trades.append({"side": side, "entry": start, "exit": day, "days": (day - start).days, "pnl": pnl / (1 + abs(entry.beta)), "stopped": abs(row.z) > STOP_Z})
       side, blocked = 0, abs(row.z) > STOP_Z
   return pd.DataFrame(trades, columns=["side", "entry", "exit", "days", "pnl", "stopped"])
-  
+
+@lru_cache(maxsize=None)
 def pair_data(a, b): 
   sig = build_signals(load_prices(), a, b)
   return sig, find_trades(sig, a, b)
+
+def window(label, year_from, year_to):
+  a, b = label.split(" / ")
+  sig, trades = pair_data(a, b)
+  year_from
 
 def hover_text(t, a, b):
   action = f"Buy {a}, Short {b}" if t.side == 1 else f"Short {a}, Buy {b}"
