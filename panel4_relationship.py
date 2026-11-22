@@ -25,3 +25,11 @@ PAIRS = {
     "Alphabet vs Meta": ["GOOGL", "META"],
 }
 TICKERS = [ticker for pair in PAIRS.values() for ticker in pair]  # all tickers in one list
+
+# Settings
+HEDGE_WINDOW = 252  # trading days used for the hedge ratio (about 1 year)
+SIGNAL_Z = 2.5  # a signal day has a z-score that is beyond plus/minus 2.5
+Z_CAP = 3  # colour scale runs from -3 to +3
+MIN_DAYS = 20  # a year needs at least this many trading days to be used
+FIRST_YEAR = 2001  # starts at 2001 as hedge ratio needs a full year of data to start
+PLAY_SECONDS = 1.0  # seconds per year while playing
