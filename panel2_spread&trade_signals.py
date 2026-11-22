@@ -78,6 +78,23 @@ def make_figure(label, year_from, year_to):
 LABELS = [f"{a} / {b}" for a, b in RIVAL_PAIRS]
 
 def build_panel2():
+  first, last = load_prices().index[0].year, load_prices(),index[-1].year
+  pair = gr.Dropdown(LABELS, value=LABELS[0], label="Rival Pair")
+  plot = gr.Plot(make_figure(LABELS[0], last - 2, last))
+  with gr.Row():
+    year_from = gr.Slider(first, last, value=last - 2, step=1, label="From (year)")
+    year_to = gr.Slider(first, last, value=last, step=1, label="To (year)")
+  pair.change(make_figure, [pair, year_from, year_to], plot)
+  for slider in (year_from, year_to):
+    slider.release(make_figure, [pair, year_from, year_to], plot)
+
+if _name_ == "_main_":
+  print("Downloading prices...")
+  print(f"Got {load_prices().shape[1]} tickers, {len(load_prices())} days. Building first chart... ")
+  with gr.Blocks(title="Panel 2 - Spread & Trade Signals") as demo: 
+    build_panel()
+  demo.launch()
+  
 
   
 
