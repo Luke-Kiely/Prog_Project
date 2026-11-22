@@ -32,7 +32,7 @@ def load_prices(tickers=TICKERS, start=START, end=END, cache=PRICE_CACHE):
     try:
         prices = yf.download(tickers, start=start, end=end,
                              auto_adjust=True, progress=False)["Close"]
-        if prices.empty or prices.isna().all().any():   # nothing back, or a stock missing
+        if prices.empty or prices.isna().all().any():    # nothing back, or a stock missing
             raise ValueError("incomplete download")
         cache.parent.mkdir(exist_ok=True)
         prices.to_csv(cache)                             # keep the backup up to date
@@ -85,18 +85,24 @@ def make_heatmap(results, cutoff=0.05, half=False):
     n = len(TICKERS)
     colours = np.full((n, n), np.nan)                           # empty 20x20 grid (diagonal stays blank)
     dots = np.full((n, n), "", dtype=object)                    # a dot on the tethered pairs
+    hover = np.full((n, n), "", dtype=object)                   # numbers shown when hovering
     for _, row in results.iterrows():
         stock_a, stock_b = row["pair"].split(" / ")
         i, j = TICKERS.index(stock_a), TICKERS.index(stock_b)   # row and column of each stock
         colours[i, j] = colours[j, i] = row["p_value"]          # same pair in both halves
+        hover[i, j] = hover[j, i] = (f"<b>{row['pair']}</b><br>p-value: {row['p_value']:.4f}"
+                                     f"<br>Correlation: {row['correlation']:.2f}"
+                                     f"<br>Half-life: {row['half_life']:.0f} days")
         if row["p_value"] < cutoff:
             dots[i, j] = dots[j, i] = "●"
     if half:                                                    # hide repeated half
         lower = np.tril(np.ones((n, n), dtype=bool))            # True on and below the diagonal
         colours[lower] = np.nan
-        dots[lower] = ""    
+        dots[lower] = ""  
+        hover[lower] = ""  
     fig = go.Figure(go.Heatmap(z=colours, x=TICKERS, y=TICKERS,
                                colorscale="Blues_r", zmin=0, zmax=1, xgap=1, ygap=1,
+                               customdata=hover, hovertemplate="%{customdata}<extra></extra>",
                                text=dots, texttemplate="%{text}", textfont=dict(color="white")))
     fig.update_layout(title="Which pairs are tethered?", height=700,
                       yaxis=dict(autorange="reversed", scaleanchor="x"))
