@@ -24,3 +24,4 @@ PAIRS = {
     "Nvidia vs AMD": ["NVDA", "AMD"],
     "Alphabet vs Meta": ["GOOGL", "META"],
 }
+TICKERS = [ticker for pair in PAIRS.values() for ticker in pair]  # all tickers in one list
