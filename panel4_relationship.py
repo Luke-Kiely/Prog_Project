@@ -56,3 +56,8 @@ def load_prices() -> pd.DataFrame:
 PRICES = load_prices()  # loaded once when the panel starts
 print("Prices loaded (days, tickers):", PRICES.shape)
 LAST_YEAR = PRICES.index.max().year  # last year in the data, not today's year
+
+# Check that all the tickers loaded successfully, if not then warn instead of crashing
+missing = set(TICKERS) - set(PRICES.columns)  # tickers we need but don't have
+if missing:
+    print(f"Warning: {PRICE_FILE} is missing {sorted(missing)}. Those pairs won't load.")
