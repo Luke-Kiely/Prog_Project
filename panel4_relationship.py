@@ -226,3 +226,41 @@ def next_year(year: int) -> tuple:
     if year >= LAST_YEAR:
         return LAST_YEAR, gr.Timer(active=False)  # reached the end so stop playing
     return year, gr.Timer(active=True)
+
+
+# Dashboard layout
+with gr.Blocks(title="Panel 4 - Relationship over time") as demo:
+    # heading and short explanation at the top of the panel
+    gr.Markdown("### Relationship over time\nPress **Play** to step through the years. "
+                "**Beta** = how much stock A moves when stock B moves 1%. "
+                "**R-squared** = how much of A's movement B explains (0 to 1). "
+                "If both jump around from year to year, the stocks are not tethered.")
+    # choose the pair and the z-score window
+    with gr.Row():
+        pair_dropdown = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair")
+        z_slider = gr.Slider(20, 120, value=60, step=10,
+                             label="Spread z-score window (trading days)")
+    # Play / Pause buttons
+    with gr.Row():
+        play_button = gr.Button("Play")
+        pause_button = gr.Button("Pause")
+    year_slider = gr.Slider(FIRST_YEAR, LAST_YEAR, value=FIRST_YEAR, step=1, label="Year")
+    # the two charts, each in its own box
+    with gr.Column(variant="panel"):
+        scatter_plot = gr.Plot(show_label=False)
+    with gr.Column(variant="panel"):
+        history_plot = gr.Plot(show_label=False)
+    timer = gr.Timer(PLAY_SECONDS, active=False)  # ticks every second while playing, off at start
+
+    # redraw charts when anything changes
+    controls = [pair_dropdown, year_slider, z_slider]
+    charts = [scatter_plot, history_plot]
+    demo.load(make_charts, controls, charts)
+    pair_dropdown.change(make_charts, controls, charts)
+    z_slider.release(make_charts, controls, charts)
+    year_slider.change(make_charts, controls, charts)
+
+    # Play/pause: the timer moves the year slider on, which redraws the charts
+    play_button.click(start_playing, year_slider, [year_slider, timer])
+    pause_button.click(stop_playing, None, timer)
+    timer.tick(next_year, year_slider, [year_slider, timer])
