@@ -1,5 +1,6 @@
 """ Group Dashboard - Trading the Rival Gap """
 import warnings
+from functools import partial
 
 import gradio as gr
 import plotly.io as pio
@@ -7,10 +8,12 @@ import plotly.io as pio
 warnings.filterwarnings("ignore", module="yfinance")   # hide yfinance's pandas deprecation noise
 pio.templates.default = "plotly_dark"                  # any chart without its own template matches the dark page
 
-from panel1_screener import build_panel1
-from panel2_spread_trade_signals import build_panel2
-from panel3_optimisation import build_panel3
-from panel4_relationship import build_panel4, PAIRS
+import panel1_screener as p1
+import panel2_spread_trade_signals as p2
+import panel3_optimisation as p3
+import panel4_relationship as p4
+
+PAIRS = p4.PAIRS                         # e.g. {"Coca-Cola vs PepsiCo": ["KO", "PEP"], ...}
 
 TITLE = "Trading the Rival Gap"
 SUBTITLE = "Can ten rival-stock pairs, from Coke vs Pepsi to Nvidia vs AMD, be traded for profit?"
@@ -45,23 +48,58 @@ CSS = """
 #nav button {border-radius: 999px; font-weight: 600; min-width: 0; white-space: nowrap; border: none; box-shadow: none;}
 #nav button.primary {background: linear-gradient(90deg, #6366f1, #22d3ee); color: #fff; box-shadow: 0 0 24px rgba(99,102,241,.45);}
 #nav button.secondary {background: transparent; color: #a1a1aa;}
+.tile {border: 1px solid #27272a; border-radius: 16px; padding: 14px; background: #111111; transition: .2s;}
+.tile .modebar-container {display: none !important;}
+.tile:hover {border-color: #6366f1; box-shadow: 0 0 24px rgba(99,102,241,.25);}
 #source {text-align: center; color: #52525b; font-size: .85em;}
 footer {display: none !important;}
 """
 
 
+# One preview tile per panel: (tab name, one-line caption, function that draws that panel's default chart)
+PREVIEWS = [("1. Screener", "Which of the 190 pairs are tethered?", lambda: p1.panel1()),
+            ("2. Spread & Trade Signals", "Where a trader would buy and sell", lambda: p2.make_figure(p2.LABELS[0], "3Y")),
+            ("3. Optimisation", "Do the best settings survive new data?",
+             lambda: p3.update_panel("KO vs PEP", "In-sample", 70, 5)[0]),
+            ("4. Relationship", "How closely the rivals move, year by year",
+             lambda: p4.make_charts(list(p4.PAIRS)[0], p4.LAST_YEAR, 60)[1])]
+
+
+def thumbnail(fig):
+  """Strip a full-size chart down to a clean preview: no titles, labels, legends or colour bars."""
+  fig.update_layout(height=360, title=None, showlegend=False, margin=dict(t=10, l=10, r=10, b=10))
+  fig.layout.annotations = ()                 # removes subplot headings and line labels
+  fig.update_xaxes(title=None)
+  fig.update_yaxes(title=None)
+  for trace in fig.data:
+    if hasattr(trace, "showscale"):
+      trace.showscale = False
+  return fig
+
+
 def build_overview():
+  """Introduction page: a 2 x 2 grid of panel previews, then the written overview."""
+  links = []
+  for row in (PREVIEWS[:2], PREVIEWS[2:]):
+    with gr.Row(equal_height=True):
+      for name, caption, make in row:
+        with gr.Column(elem_classes="tile"):
+          gr.Markdown(f"### {name}\n{caption}")
+          gr.Plot(thumbnail(make()), show_label=False)
+          links.append((gr.Button(f"Open {name} →", size="sm"), name))
   gr.Markdown(OVERVIEW)
+  return links
 
 
-PANELS = [("Introduction", build_overview), ("1. Screener", build_panel1), ("2. Spread & Trade Signals", build_panel2),
-          ("3. Optimisation", build_panel3), ("4. Relationship", build_panel4)]
+PANELS = [("Introduction", build_overview), ("1. Screener", p1.build_panel1), ("2. Spread & Trade Signals", p2.build_panel2),
+          ("3. Optimisation", p3.build_panel3), ("4. Relationship", p4.build_panel4)]
 
 
 def pick_pair(name):
   """Turn one pair name into the name each panel uses, e.g. KO / PEP, KO vs PEP, Coca-Cola vs PepsiCo."""
   a, b = PAIRS[name]
   return f"{a} / {b}", f"{a} vs {b}", name
+
 
 def show(chosen):
   """Show the chosen page, hide the others, and highlight its button."""
@@ -76,20 +114,26 @@ with gr.Blocks(title=TITLE) as demo:
   with gr.Row(elem_id="nav"):
     buttons = [gr.Button(name, variant="primary" if i == 0 else "secondary") for i, (name, _) in enumerate(PANELS)]
   with gr.Row():                       # pair picker, centred under the tabs
-    with gr.Column(scale=1): pass
+    with gr.Column(scale=1):
+      pass
     top_pair = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair (changes every panel)", scale=2)
-    with gr.Column(scale=1): pass
-  sections, pickers = [], []
+    with gr.Column(scale=1):
+      pass
+  sections, pickers, links = [], [], []
   for i, (name, build) in enumerate(PANELS):
     with gr.Column(visible=i == 0) as section:
-      picker = build()
-      if picker:
-        pickers.append(picker)        # panels 2, 3 and 4 hand back their pair picker
+      result = build()
+    if isinstance(result, list):
+      links += result                        # Introduction page: its "Open" buttons
+    elif result is not None:
+      pickers.append(result)                 # panels 2, 3 and 4: their own pair picker
     sections.append(section)
   gr.Markdown("Data: daily closing prices from Yahoo Finance via yfinance, 2000 to today.", elem_id="source")
   top_pair.change(pick_pair, top_pair, pickers)
   for button in buttons:
     button.click(show, button, sections + buttons)
+  for link, name in links:                   # each preview tile's "Open" button jumps to its tab
+    link.click(partial(show, name), None, sections + buttons)
 
 if __name__ == "__main__":
   demo.launch(inbrowser=True, theme=THEME, css=CSS, js="() => document.body.classList.add('dark')")
