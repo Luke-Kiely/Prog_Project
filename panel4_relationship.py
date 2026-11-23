@@ -24,3 +24,109 @@ PAIRS = {
     "Nvidia vs AMD": ["NVDA", "AMD"],
     "Alphabet vs Meta": ["GOOGL", "META"],
 }
+TICKERS = [ticker for pair in PAIRS.values() for ticker in pair]  # all tickers in one list
+
+# Settings
+HEDGE_WINDOW = 252  # trading days used for the hedge ratio (about 1 year)
+SIGNAL_Z = 2.5  # a signal day has a z-score that is beyond plus/minus 2.5
+Z_CAP = 3  # colour scale runs from -3 to +3
+MIN_DAYS = 20  # a year needs at least this many trading days to be used
+FIRST_YEAR = 2001  # starts at 2001 as hedge ratio needs a full year of data to start
+PLAY_SECONDS = 1.0  # seconds per year while playing
+
+
+def load_prices() -> pd.DataFrame:
+    """Gets the daily closing prices for all tickers, either from a saved CSV or by downloading."""
+    if PRICE_FILE.exists():
+        print("Using saved copy:", PRICE_FILE)
+        return pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
+    try:
+        prices = yf.download(TICKERS, start=START, auto_adjust=True, progress=False)["Close"]
+    except Exception as err:
+        raise RuntimeError(f"Could not download prices ({err}).") from err
+    prices = prices.dropna(axis=1, how="all")  # drops tickers that failed to download
+    if len(prices.columns) == len(TICKERS):  # only saves if every ticker is downloaded
+        PRICE_FILE.parent.mkdir(exist_ok=True)
+        prices.to_csv(PRICE_FILE)
+        print("Downloaded once and saved:", PRICE_FILE)
+    return prices
+
+
+# Load the data
+PRICES = load_prices()  # loaded once when the panel starts
+print("Prices loaded (days, tickers):", PRICES.shape)
+LAST_YEAR = PRICES.index.max().year  # last year in the data, not today's year
+
+# Check that all the tickers loaded successfully, if not then warn instead of crashing
+missing = set(TICKERS) - set(PRICES.columns)  # tickers we need but don't have
+if missing:
+    print(f"Warning: {PRICE_FILE} is missing {sorted(missing)}. Those pairs won't load.")
+
+
+def prepare_pair(pair_name: str, z_window: int) -> pd.DataFrame:
+    """Daily log returns for both stocks, plus the spread z-score for each day."""
+    stock_a, stock_b = PAIRS[pair_name]
+    if stock_a in missing or stock_b in missing:
+        # error only shows in this panel so the rest of the dashboard keeps working
+        raise gr.Error(f"No price data for {stock_a} or {stock_b}.")
+    both = PRICES[[stock_a, stock_b]].dropna()  # only days when both stocks traded
+    # log prices so the changes are % returns
+    log_a, log_b = np.log(both[stock_a]), np.log(both[stock_b])
+
+    # Hedge ratio = slope of A on B over the last year
+    # .shift(1) so the hedge ratio only uses past data
+    hedge = (log_a.rolling(HEDGE_WINDOW).cov(log_b) / log_b.rolling(HEDGE_WINDOW).var()).shift(1)
+    spread = log_a - hedge * log_b  # the gap between A and the hedged amount of B
+
+    # z-score is how far today's spread is from its recent average, in standard deviations
+    z_score = (spread - spread.rolling(z_window).mean()) / spread.rolling(z_window).std()
+
+    # daily returns and z-score (drops days without a z-score yet)
+    df = pd.DataFrame({"ret_a": log_a.diff(), "ret_b": log_b.diff(), "z": z_score}).dropna()
+    df["year"] = df.index.year  # used to split the data by year
+    return df
+
+
+def regression(x: pd.Series, y: pd.Series) -> tuple:
+    """Return beta, alpha and R-squared for the line y = alpha + beta * x."""
+    beta = y.cov(x) / x.var()  # slope: how much y moves when x moves
+    alpha = y.mean() - beta * x.mean()  # intercept: y when x = 0
+    r_squared = y.corr(x) ** 2  # share of y's movement explained by x
+    return beta, alpha, r_squared
+
+
+def describe(r_squared: float) -> str:
+    """Turns an R-squared value into a simple label for the chart title."""
+    if r_squared >= 0.5:
+        return "tightly linked"
+    elif r_squared >= 0.25:
+        return "moderately linked"
+    else:
+        return "loosely linked"
+
+
+def yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """Builds a table with one row per year: beta, R-squared and hover text for the bottom chart."""
+    rows = []
+    for year, group in df.groupby("year"):  # one group of days per year
+        if len(group) < MIN_DAYS:
+            continue  # skip years with too few days
+        beta, _, r_squared = regression(group["ret_b"], group["ret_a"])  # _ skips alpha
+        signal_days = (group["z"].abs() >= SIGNAL_Z).sum()  # days beyond signal threshold
+        # text shown when hovering over this year's bar
+        hover = (f"{year}<br>Beta {beta:.2f}<br>R-squared {r_squared:.2f}<br>"
+                 f"{describe(r_squared).title()}<br>Signal days {signal_days} of {len(group)}")
+        rows.append({"Year": year, "Beta": beta, "R-squared": r_squared, "Hover": hover})
+    # keep the column names even if no years qualify
+    return pd.DataFrame(rows, columns=["Year", "Beta", "R-squared", "Hover"])
+
+
+def style_figure(fig: go.Figure, title: str, subtitle: str, height: int) -> go.Figure:
+    """Applies the same styling to both charts."""
+    fig.update_layout(title=f"{title}<br><sup>{subtitle}</sup>", template="plotly_dark",
+                      height=height, showlegend=False, margin=dict(t=90))  # top room for the title
+    # turn off zoom on both axes
+    fig.update_xaxes(fixedrange=True)
+    fig.update_yaxes(fixedrange=True)
+    return fig
+        
