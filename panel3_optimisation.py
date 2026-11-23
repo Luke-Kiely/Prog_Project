@@ -45,7 +45,7 @@ STRESS_LEVEL = 20                           # VIX at or above this = stressed ma
 def load_prices():
     """Download prices from Yahoo Finance, or use the saved copy if that fails."""
     try:
-        prices = yf.download(TICKERS, start="2000-01-01", end="2026-11-21" auto_adjust=True, progress=False)["Close"]
+        prices = yf.download(TICKERS, start="2000-01-01", end="2026-11-21", auto_adjust=True, progress=False)["Close"]
         missing = [ticker for ticker in TICKERS if prices[ticker].isna().all()]
         if missing:
             raise ValueError(f"no prices for {missing}")
@@ -253,11 +253,28 @@ EXPLANATION = """
 
 
 def build_panel3():
-    """Panel 3 for the dashboard: draws the Interface above inside the dashboard page."""
-    panel3_app.render()
+    """Panel 3 for the dashboard: controls and explanation on the left, chart and table on the right."""
+    gr.Markdown("## Panel 3: Does the best strategy still work out-of-sample?\n"
+                "Drag the chart to rotate it and hover for exact values. "
+                "Sources: Yahoo Finance via yfinance, VIX from the FRED API.")
+    with gr.Row():
+        with gr.Column():
+            pair = gr.Dropdown(list(PAIRS), value="KO vs PEP", label="Rival pair")
+            sample = gr.Radio(["In-sample", "Out-of-sample"], value="In-sample", label="Show")
+            in_sample_pct = gr.Slider(50, 90, value=70, step=5, label="In-sample period (% of days)")
+            cost_bps = gr.Slider(0, 20, value=5, step=1, label="Trading cost per trade (basis points)")
+            gr.Markdown(EXPLANATION)
+        with gr.Column():
+            chart = gr.Plot(value=first_fig, show_label=False)
+            summary = gr.Dataframe(value=first_summary, label="Best in-sample setting")
+    controls = [pair, sample, in_sample_pct, cost_bps]
+    for control in controls:
+        control.change(update_panel, controls, [chart, summary])      # redraw when anything changes
 
 
 if __name__ == "__main__":
     print("=== PANEL 3 CHECK: KO vs PEP, 70% in-sample, 5 bps cost ===")
     print(first_summary.to_string(index=False))
-    panel3_app.launch()
+    with gr.Blocks() as demo:
+        build_panel3()
+    demo.launch()
