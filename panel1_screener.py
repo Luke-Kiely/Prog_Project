@@ -141,14 +141,15 @@ def panel1(first_year=2000, last_year=2026, alpha=0.05, bonferroni=False, half=F
 
 def build_panel1():
     """Panel 1 for the dashboard: the heatmap plus its controls."""
-    plot = gr.Plot(panel1())                                    # heatmap with default settings
+    gr.Markdown("Hover over a square for its numbers. Changing the years re-runs all 190 tests (about 15 seconds).")
     with gr.Row():
-        first_year = gr.Slider(2000, 2026, value=2000, step=1, label="From (year)")
-        last_year = gr.Slider(2000, 2026, value=2026, step=1, label="To (year)")
+        first_year = gr.Slider(2000, 2026, value=2000, step=1, label="From (year)", scale=2)
+        last_year = gr.Slider(2000, 2026, value=2026, step=1, label="To (year)", scale=2)
+        alpha = gr.Radio([0.01, 0.05, 0.10], value=0.05, label="Significance level", scale=1)
     with gr.Row():
-        alpha = gr.Radio([0.01, 0.05, 0.10], value=0.05, label="Significance level")
-        bonferroni = gr.Checkbox(label="Bonferroni correction")
+        bonferroni = gr.Checkbox(label="Bonferroni correction (stricter cut-off for 190 tests)")
         half = gr.Checkbox(label="Show each pair once")
+    plot = gr.Plot(panel1())                                    # heatmap with default settings
     controls = [first_year, last_year, alpha, bonferroni, half]
     for slider in (first_year, last_year):
         slider.release(panel1, controls, plot)                  # redraw when a slider is let go
