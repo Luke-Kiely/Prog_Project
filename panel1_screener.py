@@ -61,7 +61,7 @@ def test_pair(log_prices, stock_a, stock_b):
         return None
     y, x = both[stock_a], both[stock_b]
     beta = hedge_ratio(y, x)
-    t_stat, p_value, critical_values = coint(y, x)     # cointegration(Engle-Granger) test:small p=tethered
+    t_stat, p_value, critical_values = coint(y, x, maxlag=1, autolag=None)   # Engle-Granger test, 1 lag (fast): small p = tethered
     return {
         "pair": f"{stock_a} / {stock_b}",
         "p_value": p_value,
