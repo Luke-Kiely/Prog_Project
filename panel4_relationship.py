@@ -174,3 +174,27 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
     fig.update_yaxes(title=f"{stock_a} Daily Return", range=axis_range,
                      tickformat=".0%", hoverformat=".1%")
     return style_figure(fig, title, subtitle, height=600)  # apply the shared chart styling
+
+
+def make_history(df: pd.DataFrame, year: int) -> go.Figure:
+    """Builds the bottom chart: beta (line) and R-squared (bars) for each year."""
+    summary = yearly_summary(df)
+    beta_all = regression(df["ret_b"], df["ret_a"])[0]  # beta over all years ([0] = beta)
+    fig = go.Figure()
+
+    # R-squared as bars, with each year's numbers shown on hover
+    fig.add_trace(go.Bar(x=summary["Year"], y=summary["R-squared"], name="R-squared",
+                         hovertext=summary["Hover"], hoverinfo="text"))
+    # beta as an orange line with a dot per year
+    fig.add_trace(go.Scatter(x=summary["Year"], y=summary["Beta"], mode="lines+markers",
+                             name="Beta", line=dict(color="orange")))
+    # shade the year shown in the top chart
+    fig.add_vrect(x0=year - 0.5, x1=year + 0.5, fillcolor="white", opacity=0.15, line_width=0)
+    # dotted line showing beta across all years to compare each year against
+    fig.add_hline(y=beta_all, line_dash="dot", annotation_text=f"All-years beta {beta_all:.2f}")
+    # same years on the x-axis for every pair, labelled every 2 years
+    fig.update_xaxes(range=[FIRST_YEAR - 0.5, LAST_YEAR + 0.5], dtick=2)
+    subtitle = f"Shaded year: {year}. Hover over a bar for that year's numbers."
+    fig = style_figure(fig, "Beta and R-squared by Year", subtitle, height=400)
+    fig.update_layout(showlegend=True)  # show the legend here (it's off by default in style_figure)
+    return fig
