@@ -123,7 +123,7 @@ def yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
 
 def style_figure(fig: go.Figure, title: str, subtitle: str, height: int) -> go.Figure:
     """Applies the same styling to both charts."""
-    fig.update_layout(title=f"{title}<br><sup>{subtitle}</sup>", template="plotly_dark",
+    fig.update_layout(title=f"{title}<br><sup>{subtitle}</sup>", template="plotly_white",
                       height=height, showlegend=False, margin=dict(t=90))  # top room for the title
     # turn off zoom on both axes
     fig.update_xaxes(fixedrange=True)
