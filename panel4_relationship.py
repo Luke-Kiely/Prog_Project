@@ -33,6 +33,8 @@ Z_CAP = 3  # colour scale runs from -3 to +3
 MIN_DAYS = 20  # a year needs at least this many trading days to be used
 FIRST_YEAR = 2001  # starts at 2001 as hedge ratio needs a full year of data to start
 PLAY_SECONDS = 1.0  # seconds per year while playing
+# look of each headline-number card above the charts
+CARD = "flex:1; background:#1a1d23; border-radius:10px; padding:12px 16px; color:#e6e6e6"
 
 
 def load_prices() -> pd.DataFrame:
@@ -163,10 +165,8 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
                     f"This pair has data from {years.min()} to {years.max()}.")
     else:  # enough data: work out the numbers for this year
         beta, alpha, r_squared = regression(this_year["ret_b"], this_year["ret_a"])
-        signal_days = (this_year["z"].abs() >= SIGNAL_Z).sum()  # days beyond signal threshold
         title = f"{pair_name}, {year}: {describe(r_squared).title()}"
-        subtitle = (f"Beta {beta:.2f}, R-squared {r_squared:.2f}, "
-                    f"{signal_days} signal days out of {len(this_year)}")
+        subtitle = "Each dot is one trading day. Hover over a dot for its date and moves."
 
         # draw the most extreme days last so they sit on top
         this_year = this_year.sort_values("z", key=abs)
@@ -237,11 +237,29 @@ def make_history(df: pd.DataFrame, year: int) -> go.Figure:
     return fig
 
 
+def make_stats(df: pd.DataFrame, year: int) -> str:
+    """Builds the row of headline numbers for the chosen year, shown above the charts."""
+    this_year = df[df["year"] == year]
+    if len(this_year) < MIN_DAYS:
+        return "<p>No data for this year.</p>"
+    beta, _, r_squared = regression(this_year["ret_b"], this_year["ret_a"])
+    signal_days = (this_year["z"].abs() >= SIGNAL_Z).sum()  # days beyond signal threshold
+    stats = [("Beta", f"{beta:.2f}"), ("R-squared", f"{r_squared:.2f}"),
+             ("Signal days", f"{signal_days} of {len(this_year)}"),
+             ("Relationship", describe(r_squared).title())]
+    # one card per number: small grey name on top, big bold value underneath
+    cards = "".join(f"<div style='{CARD}'><div style='color:#a0a4ab; font-size:13px'>{name}</div>"
+                    f"<div style='font-size:26px; font-weight:bold'>{value}</div></div>"
+                    for name, value in stats)
+    return f"<div style='display:flex; gap:12px'>{cards}</div>"
+
+
 def make_charts(pair_name: str, year: int, z_window: int) -> tuple:
-    """Builds both charts for the current pair, year and z-score window."""
+    """Builds both charts and the headline numbers for the current pair, year and window."""
     # Gradio sliders give decimals so convert to whole numbers
     df = prepare_pair(pair_name, int(z_window))
-    return make_scatter(df, pair_name, int(year)), make_history(df, int(year))
+    year = int(year)
+    return make_scatter(df, pair_name, year), make_history(df, year), make_stats(df, year)
 
 
 # Play turns on a timer that moves the year slider
@@ -269,7 +287,7 @@ def next_year(year: int) -> tuple:
 def build_panel4():
     """Builds the panel inside whatever gr.Blocks calls it (the group dashboard or below)."""
     # draw the first pair's charts straight away so the panel isn't empty
-    first_scatter, first_history = make_charts(list(PAIRS)[0], FIRST_YEAR, 60)
+    first_scatter, first_history, first_stats = make_charts(list(PAIRS)[0], FIRST_YEAR, 60)
     # heading and short explanation at the top of the panel
     gr.Markdown("### Relationship over time\nPress **Play** to step through the years. "
                 "**Beta** = how much stock A moves when stock B moves 1%. "
@@ -280,20 +298,21 @@ def build_panel4():
         pair_dropdown = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair")
         z_slider = gr.Slider(20, 120, value=60, step=10,
                              label="Spread z-score window (trading days)")
-    # Play / Pause buttons
-    with gr.Row():
-        play_button = gr.Button("Play")
-        pause_button = gr.Button("Pause")
-    year_slider = gr.Slider(FIRST_YEAR, LAST_YEAR, value=FIRST_YEAR, step=1, label="Year")
-    # both charts together in one box
+    # Play / Pause buttons and the year slider on one row
+    with gr.Row(equal_height=True):
+        play_button = gr.Button("▶ Play", variant="primary", scale=0, min_width=110)
+        pause_button = gr.Button("⏸ Pause", scale=0, min_width=110)
+        year_slider = gr.Slider(FIRST_YEAR, LAST_YEAR, value=FIRST_YEAR, step=1, label="Year")
+    # headline numbers and both charts together in one box
     with gr.Column(variant="panel"):
+        stats_box = gr.HTML(first_stats)
         scatter_plot = gr.Plot(first_scatter, show_label=False)
         history_plot = gr.Plot(first_history, show_label=False)
     timer = gr.Timer(PLAY_SECONDS, active=False)  # ticks every second while playing, off at start
 
     # redraw charts when anything changes
     controls = [pair_dropdown, year_slider, z_slider]
-    charts = [scatter_plot, history_plot]
+    charts = [scatter_plot, history_plot, stats_box]
     pair_dropdown.change(make_charts, controls, charts)
     z_slider.release(make_charts, controls, charts)
     year_slider.change(make_charts, controls, charts)
