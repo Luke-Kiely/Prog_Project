@@ -107,8 +107,10 @@ def make_heatmap(results, cutoff=0.05, half=False):
                                text=dots, texttemplate="%{text}", textfont=dict(color="white")))
     rival_labels = [f"{a} / {b}" for a, b in RIVAL_PAIRS]
     n_tethered = (results[results["pair"].isin(rival_labels)]["p_value"] < cutoff).sum()
-    fig.update_layout(title=f"{n_tethered} of the 10 rival pairs are tethered (dot = p < {cutoff:.4g})", height=700,
-                      yaxis=dict(autorange="reversed", scaleanchor="x"))
+    fig.update_layout(title=f"{n_tethered} of the 10 rival pairs are tethered (dot = p < {cutoff:.4g})",
+                      height=700, plot_bgcolor="white",
+                      xaxis=dict(tickangle=-45, showgrid=False, constrain="domain"),
+                      yaxis=dict(autorange="reversed", scaleanchor="x", showgrid=False))
     for stock_a, stock_b in RIVAL_PAIRS:                        # outline the 10 rival pairs
         i, j = TICKERS.index(stock_a), TICKERS.index(stock_b)
         cells = [(i, j)] if half else [(i, j), (j, i)]          # upper half only, or both halves
