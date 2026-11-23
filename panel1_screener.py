@@ -155,11 +155,12 @@ def build_panel1():
     with gr.Row():
         bonferroni = gr.Checkbox(label="Bonferroni correction (stricter cut-off for 190 tests)")
         half = gr.Checkbox(label="Show each pair once")
+        pair = gr.Dropdown([f"{a} / {b}" for a, b in RIVAL_PAIRS], value="KO / PEP", label="Highlight a pair")
     plot = gr.Plot(panel1())                                    # heatmap with default settings
-    controls = [first_year, last_year, alpha, bonferroni, half]
+    controls = [first_year, last_year, alpha, bonferroni, half,pair]
     for slider in (first_year, last_year):
         slider.release(panel1, controls, plot)                  # redraw when a slider is let go
-    for control in (alpha, bonferroni, half):
+    for control in (alpha, bonferroni, half, pair):
         control.change(panel1, controls, plot)                  # instant: results are cached
 
 if __name__ == "__main__":                                               # only runs when run directly
