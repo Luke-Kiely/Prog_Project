@@ -103,3 +103,20 @@ def describe(r_squared: float) -> str:
         return "moderately linked"
     else:
         return "loosely linked"
+
+
+def yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """Builds a table with one row per year: beta, R-squared and hover text for the bottom chart."""
+    rows = []
+    for year, group in df.groupby("year"):  # one group of days per year
+        if len(group) < MIN_DAYS:
+            continue  # skip years with too few days
+        beta, _, r_squared = regression(group["ret_b"], group["ret_a"])  # _ skips alpha
+        signal_days = (group["z"].abs() >= SIGNAL_Z).sum()  # days beyond signal threshold
+        # text shown when hovering over this year's bar
+        hover = (f"{year}<br>Beta {beta:.2f}<br>R-squared {r_squared:.2f}<br>"
+                 f"{describe(r_squared).title()}<br>Signal days {signal_days} of {len(group)}")
+        rows.append({"Year": year, "Beta": beta, "R-squared": r_squared, "Hover": hover})
+    # keep the column names even if no years qualify
+    return pd.DataFrame(rows, columns=["Year", "Beta", "R-squared", "Hover"])
+        
