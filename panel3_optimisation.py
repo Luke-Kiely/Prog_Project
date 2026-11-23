@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import yfinance as yf
 
-PRICE_FILE = Path("data") / "prices.csv"
+PRICE_FILE = Path(__file__).parent / "data" / "prices.csv"     # works from any folder
 
 PAIRS = {
     "KO vs PEP": ["KO", "PEP"],
@@ -33,6 +33,7 @@ WINDOWS = [10, 20, 40, 60, 120, 250]        # lookback in trading days
 TRADING_DAYS = 252
 MIN_TRADES = 10                             # a best setting needs at least this many trades
 SHARPE_LIMIT = 1.5                          # fixed scale so pairs can be compared
+SHARPE_COLOURS = [[0, "#d03b3b"], [0.5, "#8a919c"], [1, "#2a78d6"]]   # red = losing, grey = flat, blue = winning
 
 
 # Step 1: get the prices
@@ -145,12 +146,13 @@ def draw_surface(table, best, sample, title):
     limit = max(SHARPE_LIMIT, table["in_sample"].abs().max(), table["out_of_sample"].abs().max())
 
     fig = go.Figure()
-    fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=grid.values, colorscale="RdBu",
+    fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=grid.values, colorscale=SHARPE_COLOURS,
+                             contours=dict(x=dict(show=True, color="#111111"), y=dict(show=True, color="#111111")),
                              cmin=-limit, cmax=limit, colorbar_title="Sharpe"))
     fig.add_trace(go.Scatter3d(x=[best["entry"]] * 2, y=[best["window"]] * 2, z=[-limit, limit],
-                               mode="lines", line=dict(color="black", width=8),
+                               mode="lines", line=dict(color="white", width=8),
                                name="Best in-sample setting"))   # vertical line, never hidden
-    fig.update_layout(title=title, height=650, margin=dict(l=0, r=0, t=50, b=0),
+    fig.update_layout(title=title, height=650, template="plotly_dark", margin=dict(l=0, r=0, t=50, b=0),
                       scene=dict(xaxis_title="Entry (z-score)", yaxis_title="Lookback (days)",
                                  zaxis_title="Sharpe", zaxis_range=[-limit, limit],
                                  camera=dict(eye=dict(x=1.6, y=-1.6, z=0.9))))
@@ -178,6 +180,8 @@ def update_panel(pair_name, sample, in_sample_pct, cost_bps):
     spread, hedge_ratio = get_spread(prices, split)
     table = make_sharpe_table(spread, split, cost_bps)
     enough_trades = table[table["trades_in"] >= MIN_TRADES]    # ignore settings that barely traded
+    if enough_trades.empty:                                      # no setting traded enough
+        enough_trades = table
     best = enough_trades.loc[enough_trades["in_sample"].idxmax()]
     luck = luck_test(spread, split, best, cost_bps)
 
@@ -205,7 +209,7 @@ panel3_app = gr.Interface(
     title="Panel 3: Does the best strategy still work out-of-sample?",
     live=True,
     flagging_mode="never",
-    description="Drag to rotate the chart and hover for exact values. Black line = best "
+    description="Drag to rotate the chart and hover for exact values. White line = best "
                 "in-sample setting. Source: Yahoo Finance via yfinance.",
 )
 
