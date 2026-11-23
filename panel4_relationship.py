@@ -134,7 +134,8 @@ def style_figure(fig: go.Figure, title: str, subtitle: str, height: int) -> go.F
     fig.update_layout(title=dict(text=title, font_size=20, x=0.02), template="plotly_dark",
                       font=dict(family="Arial", size=13, color="#e6e6e6"),  # all other text
                       hoverlabel=dict(font_size=13), legend=dict(font_size=13),
-                      height=height, showlegend=False, margin=dict(t=95))  # top room for the title
+                      height=height, showlegend=False,
+                      margin=dict(t=95, l=80, r=190))  # same side margins so both charts line up
     # turn off zoom, and make axis titles bigger than the tick numbers
     fig.update_xaxes(fixedrange=True, title_font_size=15, tickfont=dict(size=12, color="#a0a4ab"))
     fig.update_yaxes(fixedrange=True, title_font_size=15, tickfont=dict(size=12, color="#a0a4ab"))
@@ -225,12 +226,14 @@ def make_history(df: pd.DataFrame, year: int) -> go.Figure:
                              hoverinfo="skip"))
     # dotted line showing beta across all years to compare each year against
     fig.add_hline(y=beta_all, line_dash="dot", line_color="#8a919c",
-                  annotation_text=f"All-years beta {beta_all:.2f}")
+                  annotation_text=f"All-years beta {beta_all:.2f}",
+                  annotation_position="top left", annotation_font_size=11)
     # same years on the x-axis for every pair, labelled every 2 years
     fig.update_xaxes(range=[FIRST_YEAR - 0.5, LAST_YEAR + 0.5], dtick=2)
     subtitle = "Big white dot = the slope of the line above. Hover over a bar for its numbers."
     fig = style_figure(fig, f"How {year} compares with every other year", subtitle, height=400)
-    fig.update_layout(showlegend=True)  # show the legend (style_figure turns it off)
+    # show the legend (style_figure turns it off), with thinner, rounded bars
+    fig.update_layout(showlegend=True, bargap=0.35, barcornerradius=4)
     return fig
 
 
