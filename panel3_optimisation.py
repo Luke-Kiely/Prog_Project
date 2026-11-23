@@ -158,7 +158,7 @@ def draw_surface(table, best, sample, title):
                                name="Best in-sample setting"))   # vertical line, never hidden
     fig.update_layout(title=title, height=650, template="plotly_dark", margin=dict(l=0, r=0, t=50, b=0),
                       scene=dict(xaxis_title="Entry (z-score)", yaxis_title="Lookback (days)",
-                                 zaxis_title="Sharpe", zaxis_range=[-limit, limit],
+                                 zaxis_title="Sharpe ratio", zaxis_tickvals=[-1, 0, 1], zaxis_range=[-limit, limit],
                                  camera=dict(eye=dict(x=1.6, y=-1.6, z=0.9))))
     return fig
 
@@ -213,6 +213,7 @@ panel3_app = gr.Interface(
     title="Panel 3: Does the best strategy still work out-of-sample?",
     live=True,
     flagging_mode="never",
+    clear_btn=None,
     description="Drag to rotate the chart and hover for exact values. White line = best "
                 "in-sample setting. Source: Yahoo Finance via yfinance.",
 )
