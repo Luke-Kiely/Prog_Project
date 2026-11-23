@@ -1,7 +1,7 @@
 """Panel 2 - Spread & Trade Signals. Top: A's price vs the fair value implied by B. It marks the trades. Bottom: z-score of the gap"""
 
 from functools import lru_cache
-from pathlib import path
+from pathlib import Path
 import gradio as gr
 import numpy as np
 import pandas as pd
