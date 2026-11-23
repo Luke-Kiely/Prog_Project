@@ -61,3 +61,27 @@ LAST_YEAR = PRICES.index.max().year  # last year in the data, not today's year
 missing = set(TICKERS) - set(PRICES.columns)  # tickers we need but don't have
 if missing:
     print(f"Warning: {PRICE_FILE} is missing {sorted(missing)}. Those pairs won't load.")
+
+
+def prepare_pair(pair_name: str, z_window: int) -> pd.DataFrame:
+    """Daily log returns for both stocks, plus the spread z-score for each day."""
+    stock_a, stock_b = PAIRS[pair_name]
+    if stock_a in missing or stock_b in missing:
+        # error only shows in this panel so the rest of the dashboard keeps working
+        raise gr.Error(f"No price data for {stock_a} or {stock_b}.")
+    both = PRICES[[stock_a, stock_b]].dropna()  # only days when both stocks traded
+    # log prices so the changes are % returns
+    log_a, log_b = np.log(both[stock_a]), np.log(both[stock_b])
+
+    # Hedge ratio = slope of A on B over the last year
+    # .shift(1) so the hedge ratio only uses past data
+    hedge = (log_a.rolling(HEDGE_WINDOW).cov(log_b) / log_b.rolling(HEDGE_WINDOW).var()).shift(1)
+    spread = log_a - hedge * log_b  # the gap between A and the hedged amount of B
+
+    # z-score is how far today's spread is from its recent average, in standard deviations
+    z_score = (spread - spread.rolling(z_window).mean()) / spread.rolling(z_window).std()
+
+    # daily returns and z-score (drops days without a z-score yet)
+    df = pd.DataFrame({"ret_a": log_a.diff(), "ret_b": log_b.diff(), "z": z_score}).dropna()
+    df["year"] = df.index.year  # used to split the data by year
+    return df
