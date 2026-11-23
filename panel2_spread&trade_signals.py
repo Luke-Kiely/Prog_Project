@@ -82,7 +82,7 @@ def make_figure(label, period):
   fig.add_scatter(x=sig.index, y=sig.z, name="Z-score", showlegend=False, line=dict(color=COLOURS["ink"], width=1.5), hovertemplate="z = %{y:.2f}<extra></extra>", row=2, col=1)
   for y, colour, label, pos in [(ENTRY_Z, COLOURS["short"], f"{a} expensive: short {a}", "top left"), (-ENTRY_Z, COLOURS["long"], f"{a} cheap: buy {a}", "bottom left"), (0, COLOURS["fair"], "", "top left")]:
     fig.add_hline(y=y, line=dict(color=colour, width=1, dash="dash" if y else "solid"), row=2, col=1, annotation_text=label, annotation_position=pos, annotation_font_color=colour)
-  fig.add_bar(x=trades.exit, y=trades.pnl, name="Trade P&L", showlegend=False, customdata=running total, market_color=np.where(trades.pnl > 0), COLOURS["long"], COLOURS["short"]), hovertemplate="Trade P&L: %{y:+.1%}<br>Running Total: %{customdata:+.1%}<extra></extra>", row=3, col=1)
+  fig.add_bar(x=trades.exit, y=trades.pnl, name="Trade P&L", showlegend=False, customdata=running total, market_color=np.where(trades.pnl > 0, COLOURS["long"], COLOURS["short"]), hovertemplate="Trade P&L: %{y:+.1%}<br>Running Total: %{customdata:+.1%}<extra></extra>", row=3, col=1)
   fig.add_hline(y=0, line=dict(color=COLOURS["fair"], width=1), row=3, col=1)
   fig.update_layout(title=dict(text=title, x=0.01), height=760, template="plotly_white", hovermode="closest", margin=dict(t=90, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
   fig.update_yaxes(title_text=f"{a} price", tickprefix="$", row=1, col=1)
