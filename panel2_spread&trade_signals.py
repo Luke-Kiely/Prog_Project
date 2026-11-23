@@ -9,7 +9,7 @@ import yfinance as yf
 from plotly.subplots import make_subplots
 
 RIVAL_PAIRS = [("KO", "PEP"), ("V", "MA"), ("XOM", "CVX"), ("JPM", "BAC"), ("HD", "LOW"), ("WMT", "COST"), ("MCD", "QSR"), ("UPS", "FDX"), ("NVDA", "AMD"), ("GOOGL", "META")] 
-SECTORS = ["Soft Drinks", "Card Networks", "Oil Companies", "Large Banks", "Home Stores", "Retail", "Fast Food", "Parcel Delivery", "Memory Chips", "Technology"]
+SECTORS = ["Soft Drinks", "Card Networks", "Oil Companies", "Large Banks", "Home Stores", "Retail", "Fast Food", "Parcel Delivery", "Processors", "Digital Ads"]
 
 WINDOW = 60
 ENTRY_Z = 2.0
@@ -101,7 +101,7 @@ def pick_period(label, chosen):
 def build_panel2():
   with gr.Row():
     with gr.Column(scale=1, min_width=230):
-      pair=gr.Radio(CHOICES, value=LABELA[0], label="Rival Pair")
+      pair=gr.Radio(CHOICES, value=LABELS[0], label="Rival Pair")
     with gr.Column(scale=5):
       plot = gr.Plot(make_figure(LABELS[0], "3Y"))
       period = gr.State("3Y")
