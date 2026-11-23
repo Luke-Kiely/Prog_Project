@@ -306,7 +306,7 @@ def build_panel4():
     # headline numbers and both charts together in one box
     with gr.Column(variant="panel"):
         stats_box = gr.HTML(first_stats)
-         # fixed heights stop the page jumping to the top while the charts redraw
+        # fixed heights stop the page jumping to the top while the charts redraw
         with gr.Row(min_height=620):
             scatter_plot = gr.Plot(first_scatter, show_label=False)
         with gr.Row(min_height=420):
