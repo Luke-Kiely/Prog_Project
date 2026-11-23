@@ -124,7 +124,7 @@ def build_panel2():
 if __name__ == "__main__":
   print("Downloading prices...")
   print(f"Got {load_prices().shape[1]} tickers, {len(load_prices())} days. Building first chart... ")
-  with gr.Blocks(title="Panel 2 - Spread & Trade Signals") as demo: 
+  with gr.Blocks(title="Panel 2 - Spread & Trade Signals (Luke Kiely)") as demo: 
     build_panel2()
   demo.launch(theme=gr.themes.Default(primary_hue="blue"))
   
