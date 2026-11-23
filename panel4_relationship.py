@@ -264,3 +264,7 @@ with gr.Blocks(title="Panel 4 - Relationship over time") as demo:
     play_button.click(start_playing, year_slider, [year_slider, timer])
     pause_button.click(stop_playing, None, timer)
     timer.tick(next_year, year_slider, [year_slider, timer])
+
+
+if __name__ == "__main__":
+    demo.launch()  # only runs when this file is executed directly
