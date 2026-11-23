@@ -101,10 +101,12 @@ def make_heatmap(results, cutoff=0.05, half=False):
         dots[lower] = ""  
         hover[lower] = ""  
     fig = go.Figure(go.Heatmap(z=colours, x=TICKERS, y=TICKERS,
-                               colorscale="Blues_r", zmin=0, zmax=1, xgap=1, ygap=1,
+                               colorscale="Blues_r", zmin=0, zmax=1, xgap=1, ygap=1, colorbar=dict(title="p-value"),
                                customdata=hover, hovertemplate="%{customdata}<extra></extra>",
                                text=dots, texttemplate="%{text}", textfont=dict(color="white")))
-    fig.update_layout(title="Which pairs are tethered?", height=700,
+    rival_labels = [f"{a} / {b}" for a, b in RIVAL_PAIRS]
+    n_tethered = (results[results["pair"].isin(rival_labels)]["p_value"] < cutoff).sum()
+    fig.update_layout(title=f"{n_tethered} of the 10 rival pairs are tethered (dot = p < {cutoff:.4g})", height=700,
                       yaxis=dict(autorange="reversed", scaleanchor="x"))
     for stock_a, stock_b in RIVAL_PAIRS:                        # outline the 10 rival pairs
         i, j = TICKERS.index(stock_a), TICKERS.index(stock_b)
