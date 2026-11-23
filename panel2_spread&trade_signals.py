@@ -13,7 +13,7 @@ RIVAL_PAIRS = [("KO", "PEP"), ("V", "MA"), ("XOM", "CVX"), ("JPM", "BAC"), ("HD"
 WINDOW = 60
 ENTRY_Z = 2.0
 STOP_Z = 3.5
-PERIODS = {"1Y": 1, "3Y": 3, "5Y": 5, "10Y", 10, "All": None}
+PERIODS = {"1Y": 1, "3Y": 3, "5Y": 5, "10Y": 10, "All": None}
 COLOURS = {"a": "#2a78d6", "fair": "#898781", "long": "#0ca30c", "short": "#d03b3b", "ink": "#52514e"}
 
 @lru_cache(maxsize=1)
@@ -55,7 +55,7 @@ def window(label, period):
   a, b = label.split(" / ")
   sig, trades = pair_data(a, b)
   if PERIODS[period]:
-    sig = sig.loc[sig.index[-1] - pd.DateOffset(years=PERIODS[period])]:
+    sig = sig.loc[sig.index[-1] - pd.DateOffset(years=PERIODS[period])]
   trades = trades[trades.entry.between(sig.index.min(), sig.index.max())]
   return a, b, sig, trades
 
