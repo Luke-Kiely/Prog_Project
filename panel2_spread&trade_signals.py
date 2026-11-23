@@ -55,7 +55,7 @@ def window(label, period):
   a, b = label.split(" / ")
   sig, trades = pair_data(a, b)
   if PERIODS[period]:
-    sig = sig.loc[sig.index[-1] - pd.DateOffset(years=PERIODS[period]):
+    sig = sig.loc[sig.index[-1] - pd.DateOffset(years=PERIODS[period])]:
   trades = trades[trades.entry.between(sig.index.min(), sig.index.max())]
   return a, b, sig, trades
 
