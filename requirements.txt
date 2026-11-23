@@ -1,5 +1,7 @@
-gradio>=5.0
+gradio>=6.0
 numpy>=1.26
 pandas>=2.1
 plotly>=5.20
 yfinance>=0.2.54
+statsmodels
+jinja2>=3.1.6

@@ -1,3 +1,9 @@
+"""Panel 3 - Strategy Optimisation (Mathew)
+
+Tests 36 pairs trading settings on past prices, then checks whether the best one
+still works on later prices. Run it with: python panel3_optimisation.py
+"""
+
 from pathlib import Path
 
 import gradio as gr
@@ -5,9 +11,6 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import yfinance as yf
-
-# Panel 3 - Strategy Optimisation
-# Does the best pairs trading setting from past data still work in future data?
 
 PRICE_FILE = Path("data") / "prices.csv"
 
@@ -132,6 +135,7 @@ def luck_test(spread, split, best, cost_bps, n_tries=500):
             as_good += 1
     return as_good / n_tries
 
+
 # Step 4: chart and summary table
 
 def draw_surface(table, best, sample, title):
@@ -188,23 +192,30 @@ def update_panel(pair_name, sample, in_sample_pct, cost_bps):
 
 all_prices = load_prices()
 
-# check the numbers before starting the app
-fig, summary = update_panel("KO vs PEP", "In-sample", 70, 5)
-print("=== PANEL 3 CHECK: KO vs PEP, 70% in-sample, 5 bps cost ===")
-print(summary.to_string(index=False))
+first_fig, first_summary = update_panel("KO vs PEP", "In-sample", 70, 5)   # shown when the page opens
 
-demo = gr.Interface(
+panel3_app = gr.Interface(
     fn=update_panel,
     inputs=[gr.Dropdown(list(PAIRS), value="KO vs PEP", label="Rival pair"),
             gr.Radio(["In-sample", "Out-of-sample"], value="In-sample", label="Show"),
             gr.Slider(50, 90, value=70, step=5, label="In-sample period (% of days)"),
             gr.Slider(0, 20, value=5, step=1, label="Trading cost per trade (basis points)")],
-    outputs=[gr.Plot(label="Sharpe ratio for every setting"),
-             gr.Dataframe(label="Best in-sample setting")],
+    outputs=[gr.Plot(value=first_fig, label="Sharpe ratio for every setting"),
+             gr.Dataframe(value=first_summary, label="Best in-sample setting")],
     title="Panel 3: Does the best strategy still work out-of-sample?",
-    live=True,                          # redraw as soon as a control changes
+    live=True,
     flagging_mode="never",
     description="Drag to rotate the chart and hover for exact values. Black line = best "
                 "in-sample setting. Source: Yahoo Finance via yfinance.",
 )
-demo.launch()
+
+
+def build_panel3():
+    """Panel 3 for the dashboard: draws the Interface above inside the dashboard page."""
+    panel3_app.render()
+
+
+if __name__ == "__main__":
+    print("=== PANEL 3 CHECK: KO vs PEP, 70% in-sample, 5 bps cost ===")
+    print(first_summary.to_string(index=False))
+    panel3_app.launch()
