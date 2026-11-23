@@ -129,4 +129,48 @@ def style_figure(fig: go.Figure, title: str, subtitle: str, height: int) -> go.F
     fig.update_xaxes(fixedrange=True)
     fig.update_yaxes(fixedrange=True)
     return fig
-        
+
+
+def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
+    """Builds a scatter plot with one dot per trading day in the chosen year,
+    plus that year's regression line."""
+    stock_a, stock_b = PAIRS[pair_name]
+    this_year = df[df["year"] == year]  # only the days in the chosen year
+    fig = go.Figure()
+
+    # axes are fixed so the chart doesn't jump
+    limit = np.ceil(4 * df[["ret_a", "ret_b"]].std().max() * 100) / 100
+    axis_range = [-limit, limit]
+
+    if len(this_year) < MIN_DAYS:  # not enough data to plot this year
+        title = f"{pair_name}, {year}"
+        years = yearly_summary(df)["Year"]  # years that have enough data to plot
+        subtitle = ("No data for this year. "
+                    f"This pair has data from {years.min()} to {years.max()}.")
+    else:  # enough data: work out the numbers for this year
+        beta, alpha, r_squared = regression(this_year["ret_b"], this_year["ret_a"])
+        signal_days = (this_year["z"].abs() >= SIGNAL_Z).sum()  # days beyond signal threshold
+        title = f"{pair_name}, {year}: {describe(r_squared).title()}"
+        subtitle = (f"Beta {beta:.2f}, R-squared {r_squared:.2f}, "
+                    f"{signal_days} signal days out of {len(this_year)}")
+
+        # one dot per day, coloured by that day's spread z-score
+        fig.add_trace(go.Scatter(
+            x=this_year["ret_b"], y=this_year["ret_a"], mode="markers", name="Spread z-score",
+            text=this_year["z"].round(2),  # z-score shown when hovering
+            marker=dict(size=8, color=this_year["z"], colorscale="RdBu_r", cmin=-Z_CAP, cmax=Z_CAP,
+                        colorbar=dict(title=f"Spread z-score<br>Red = {stock_a} expensive<br>"
+                                            f"Blue = {stock_a} cheap<br> ")),
+        ))
+
+        # regression line across the whole chart
+        line_x = np.array(axis_range)  # the two ends of the x-axis
+        fig.add_trace(go.Scatter(x=line_x, y=alpha + beta * line_x, mode="lines",
+                                 name="Regression line", line=dict(color="white", width=2)))
+
+    # axis labels as a percentage with the same range every year
+    fig.update_xaxes(title=f"{stock_b} Daily Return", range=axis_range,
+                     tickformat=".0%", hoverformat=".1%")
+    fig.update_yaxes(title=f"{stock_a} Daily Return", range=axis_range,
+                     tickformat=".0%", hoverformat=".1%")
+    return style_figure(fig, title, subtitle, height=600)  # apply the shared chart styling
