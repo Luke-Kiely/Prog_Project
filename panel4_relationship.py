@@ -306,8 +306,11 @@ def build_panel4():
     # headline numbers and both charts together in one box
     with gr.Column(variant="panel"):
         stats_box = gr.HTML(first_stats)
-        scatter_plot = gr.Plot(first_scatter, show_label=False)
-        history_plot = gr.Plot(first_history, show_label=False)
+         # fixed heights stop the page jumping to the top while the charts redraw
+        with gr.Row(min_height=620):
+            scatter_plot = gr.Plot(first_scatter, show_label=False)
+        with gr.Row(min_height=420):
+            history_plot = gr.Plot(first_history, show_label=False)
     timer = gr.Timer(PLAY_SECONDS, active=False)  # ticks every second while playing, off at start
 
     # redraw charts when anything changes
