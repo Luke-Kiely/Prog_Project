@@ -218,3 +218,11 @@ def start_playing(year: int) -> tuple:
 def stop_playing():
     """Pauses by switching the timer off."""
     return gr.Timer(active=False)
+
+
+def next_year(year: int) -> tuple:
+    """Called by the timer: moves on one year, and stops at the last year."""
+    year = int(year) + 1
+    if year >= LAST_YEAR:
+        return LAST_YEAR, gr.Timer(active=False)  # reached the end so stop playing
+    return year, gr.Timer(active=True)
