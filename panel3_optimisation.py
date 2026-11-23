@@ -190,10 +190,10 @@ def update_panel(pair_name, sample, in_sample_pct, cost_bps):
     luck = luck_test(spread, split, best, cost_bps)
 
     change = "falls" if best["out_of_sample"] < best["in_sample"] else "rises"
-    title = (f"{pair_name}: best in-sample Sharpe of {best['in_sample']:.2f} "
-             f"{change} to {best['out_of_sample']:.2f} after {prices.index[split]:%b %Y}")
+    title = (f"<b>{pair_name}</b><br><sup>Best in-sample Sharpe of {best['in_sample']:.2f} "
+             f"{change} to {best['out_of_sample']:.2f} after {prices.index[split]:%b %Y}</sup>")
     fig = draw_surface(table, best, sample, title)
-    return fig, make_summary(best, hedge_ratio, luck)
+    return fig, make_summary(best, hedge_ratio, luck, prices.index[split])
 
 
 # Main body
