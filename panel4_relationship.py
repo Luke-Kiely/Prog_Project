@@ -138,6 +138,9 @@ def style_figure(fig: go.Figure, title: str, subtitle: str, height: int) -> go.F
     # turn off zoom, and make axis titles bigger than the tick numbers
     fig.update_xaxes(fixedrange=True, title_font_size=15, tickfont=dict(size=12, color="#a0a4ab"))
     fig.update_yaxes(fixedrange=True, title_font_size=15, tickfont=dict(size=12, color="#a0a4ab"))
+    # faint gridlines so the data stands out
+    fig.update_xaxes(gridcolor="rgba(255,255,255,0.07)", zerolinecolor="rgba(255,255,255,0.3)")
+    fig.update_yaxes(gridcolor="rgba(255,255,255,0.07)", zerolinecolor="rgba(255,255,255,0.3)")
     return fig
 
 
@@ -164,22 +167,31 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
         subtitle = (f"Beta {beta:.2f}, R-squared {r_squared:.2f}, "
                     f"{signal_days} signal days out of {len(this_year)}")
 
+        # draw the most extreme days last so they sit on top
+        this_year = this_year.sort_values("z", key=abs)
         # one dot per day, coloured by that day's spread z-score
         fig.add_trace(go.Scatter(
             x=this_year["ret_b"], y=this_year["ret_a"], mode="markers", name="Spread z-score",
-            text=this_year["z"].round(2),  # z-score shown when hovering
-            marker=dict(size=8, color=this_year["z"], cmin=-Z_CAP, cmax=Z_CAP,
+            text=this_year.index.strftime("%d %b %Y"),  # the date, shown when hovering
+            hovertemplate=(f"%{{text}}<br>{stock_a} %{{y:+.1%}}, {stock_b} %{{x:+.1%}}"
+                           "<br>Spread z-score %{marker.color:+.2f}<extra></extra>"),
+            marker=dict(size=9, opacity=0.85, color=this_year["z"], cmin=-Z_CAP, cmax=Z_CAP,
                         colorscale=[[0, "#2a78d6"], [0.5, "#8a919c"], [1, "#d03b3b"]],
                         # labels at the ends of the colour bar instead of a long title
                         colorbar=dict(title=dict(text="Spread z-score", side="right"), len=0.7,
                                       tickvals=[-Z_CAP, 0, Z_CAP],
                                       ticktext=[f"-3 ({stock_a} cheap)", "0 (normal)",
                                                 f"+3 ({stock_a} expensive)"]),
-                        line=dict(width=0.5, color="grey")),  # outline so pale dots show
+                        line=dict(width=1, color="#111111")),  # thin dark outline
         ))
 
         # regression line across the whole chart
         line_x = np.array(axis_range)  # the two ends of the x-axis
+        # faint dashed beta = 1 line: dots on it mean both stocks moved the same %
+        fig.add_trace(go.Scatter(x=line_x, y=line_x, mode="lines", hoverinfo="skip",
+                                 line=dict(color="#8a919c", width=1, dash="dash")))
+        fig.add_annotation(x=0.9 * limit, y=0.9 * limit, text="beta = 1 ", showarrow=False,
+                           font=dict(color="#8a919c", size=12), xanchor="right")
         fig.add_trace(go.Scatter(x=line_x, y=alpha + beta * line_x, mode="lines",
                                  name="Regression line", line=dict(color="white", width=2)))
 
