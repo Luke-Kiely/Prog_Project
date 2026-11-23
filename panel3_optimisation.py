@@ -151,6 +151,8 @@ def draw_surface(table, best, sample, title):
                              contours=dict(x=dict(show=True, color="#111111"), y=dict(show=True, color="#111111")),
                              cmin=-limit, cmax=limit, colorbar_title="Sharpe",
                              hovertemplate="Entry %{x} sd<br>Lookback %{y} days<br>Sharpe %{z:.2f}<extra></extra>"))
+    fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=np.zeros(grid.shape), opacity=0.25,
+                             colorscale=[[0, "white"], [1, "white"]], showscale=False, hoverinfo="skip"))   # Sharpe = 0 plane
     fig.add_trace(go.Scatter3d(x=[best["entry"]] * 2, y=[best["window"]] * 2, z=[-limit, limit],
                                mode="lines", line=dict(color="white", width=8),
                                name="Best in-sample setting"))   # vertical line, never hidden
