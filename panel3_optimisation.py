@@ -178,6 +178,8 @@ def update_panel(pair_name, sample, in_sample_pct, cost_bps):
     spread, hedge_ratio = get_spread(prices, split)
     table = make_sharpe_table(spread, split, cost_bps)
     enough_trades = table[table["trades_in"] >= MIN_TRADES]    # ignore settings that barely traded
+        if enough_trades.empty:                                      # no setting traded enough
+        enough_trades = table
     best = enough_trades.loc[enough_trades["in_sample"].idxmax()]
     luck = luck_test(spread, split, best, cost_bps)
 
