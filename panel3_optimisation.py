@@ -132,6 +132,7 @@ def luck_test(spread, split, best, cost_bps, n_tries=500):
             as_good += 1
     return as_good / n_tries
 
+
 # Step 4: chart and summary table
 
 def draw_surface(table, best, sample, title):
