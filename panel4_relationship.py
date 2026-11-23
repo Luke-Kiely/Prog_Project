@@ -93,3 +93,13 @@ def regression(x: pd.Series, y: pd.Series) -> tuple:
     alpha = y.mean() - beta * x.mean()  # intercept: y when x = 0
     r_squared = y.corr(x) ** 2  # share of y's movement explained by x
     return beta, alpha, r_squared
+
+
+def describe(r_squared: float) -> str:
+    """Turns an R-squared value into a simple label for the chart title."""
+    if r_squared >= 0.5:
+        return "tightly linked"
+    elif r_squared >= 0.25:
+        return "moderately linked"
+    else:
+        return "loosely linked"
