@@ -161,8 +161,10 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
             text=this_year["z"].round(2),  # z-score shown when hovering
             marker=dict(size=8, color=this_year["z"], cmin=-Z_CAP, cmax=Z_CAP,
                         colorscale=[[0, "#2a78d6"], [0.5, "#8a919c"], [1, "#d03b3b"]],
-                        colorbar=dict(title=f"Spread z-score<br>Red = {stock_a} expensive<br>"
-                                            f"Blue = {stock_a} cheap<br> "),
+                        # labels at the ends of the colour bar instead of a long title
+                        colorbar=dict(title="Spread z-score", thickness=15, len=0.7,
+                                      tickvals=[-Z_CAP, 0, Z_CAP],
+                                      ticktext=[f"{stock_a} cheap", "0", f"{stock_a} expensive"]),
                         line=dict(width=0.5, color="grey")),  # outline so pale dots show
         ))
 
