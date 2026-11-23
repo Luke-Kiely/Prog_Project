@@ -251,7 +251,16 @@ def make_stats(df: pd.DataFrame, year: int) -> str:
     cards = "".join(f"<div style='{CARD}'><div style='color:#a0a4ab; font-size:13px'>{name}</div>"
                     f"<div style='font-size:26px; font-weight:bold'>{value}</div></div>"
                     for name, value in stats)
-    return f"<div style='display:flex; gap:12px'>{cards}</div>"
+    # one-sentence verdict that answers "are they tethered?" for this pair
+    summary = yearly_summary(df)
+    rank = (summary["R-squared"] > r_squared).sum() + 1  # 1 = tightest year
+    verdict = (f"Across {len(summary)} years, beta ranged {summary['Beta'].min():.2f} to "
+               f"{summary['Beta'].max():.2f} and R-squared was above 0.5 in "
+               f"{(summary['R-squared'] >= 0.5).sum()} of them, so overall the pair is "
+               f"<b>{describe(summary['R-squared'].median())}</b>. {year} ranks "
+               f"#{rank} of {len(summary)} for how tightly the two moved together.")
+    return (f"<div style='display:flex; gap:12px'>{cards}</div>"
+            f"<p style='margin:14px 4px 0; font-size:15px; color:#e6e6e6'>{verdict}</p>")
 
 
 def make_charts(pair_name: str, year: int, z_window: int) -> tuple:
@@ -311,6 +320,38 @@ def build_panel4():
             scatter_plot = gr.Plot(first_scatter, show_label=False)
         with gr.Row(min_height=420):
             history_plot = gr.Plot(first_history, show_label=False)
+    # explanation, data source, method and caveats, folded away until clicked
+    with gr.Accordion("How to read this chart, and the data and method", open=False):
+        gr.Markdown(f"""
+**Reading the charts**
+- **Top:** each dot is one trading day in the chosen year: how much stock B moved (across)
+  and stock A moved (up). The white line is that year's regression line; its slope is beta.
+- **Dashed line:** beta = 1, where both stocks move by the same percentage.
+- **Dot colour:** that day's spread z-score. Red = stock A expensive compared with B,
+  blue = cheap. Beyond plus or minus {SIGNAL_Z} counts as a signal day.
+- **Bottom:** R-squared (bars) and beta (white line) for every year, with the chosen year
+  picked out. If both swing a lot from year to year, the pair is not reliably tethered.
+
+**Data**
+- Daily closing prices adjusted for splits and dividends, from Yahoo Finance using the
+  yfinance library, {START[:4]} to {LAST_YEAR} ({LAST_YEAR} is a partial year).
+  Saved in `data/prices.csv` so the panel works without downloading.
+
+**Method**
+- Returns are daily changes in log prices; beta and R-squared come from a regression of
+  stock A's returns on stock B's, one year at a time.
+- Hedge ratio: slope of log A on log B over the previous {HEDGE_WINDOW} trading days,
+  using yesterday's value so it never uses future data.
+- Spread z-score: today's spread compared with its average over the chosen window,
+  using today's hedge ratio for the whole window.
+- Years with fewer than {MIN_DAYS} trading days are left out.
+
+**Caveats**
+- A signal day is not a trade: this panel does not test whether the gap closed or made
+  money (Panels 2 and 3 do).
+- Beta and R-squared measure how the stocks move day to day, not whether their prices
+  stay together in the long run (Panel 1's cointegration test).
+""")
     timer = gr.Timer(PLAY_SECONDS, active=False)  # ticks every second while playing, off at start
 
     # redraw charts when anything changes
