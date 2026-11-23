@@ -99,7 +99,7 @@ def pick_period(label, chosen):
   return [chosen, make_figure(label, chosen)] + buttons
   
 def build_panel2():
-  with gr.Row():
+  with gr.Row(equal_height=True):
     with gr.Column(scale=1, min_width=230):
       pair=gr.Radio(CHOICES, value=LABELS[0], label="Rival Pair")
     with gr.Column(scale=5):
