@@ -106,7 +106,8 @@ def describe(r_squared: float) -> str:
 
 
 def yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
-    """Builds a table with one row per year: beta, R-squared and hover text for the bottom chart."""
+    """Builds a table with one row per year: beta, R-squared and hover text
+    for the bottom chart."""
     rows = []
     for year, group in df.groupby("year"):  # one group of days per year
         if len(group) < MIN_DAYS:
@@ -123,7 +124,7 @@ def yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
 
 def style_figure(fig: go.Figure, title: str, subtitle: str, height: int) -> go.Figure:
     """Applies the same styling to both charts."""
-    fig.update_layout(title=f"{title}<br><sup>{subtitle}</sup>", template="plotly_dark",
+    fig.update_layout(title=f"{title}<br><sup>{subtitle}</sup>", template="plotly_white",
                       height=height, showlegend=False, margin=dict(t=90))  # top room for the title
     # turn off zoom on both axes
     fig.update_xaxes(fixedrange=True)
@@ -160,13 +161,14 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
             text=this_year["z"].round(2),  # z-score shown when hovering
             marker=dict(size=8, color=this_year["z"], colorscale="RdBu_r", cmin=-Z_CAP, cmax=Z_CAP,
                         colorbar=dict(title=f"Spread z-score<br>Red = {stock_a} expensive<br>"
-                                            f"Blue = {stock_a} cheap<br> ")),
+                                            f"Blue = {stock_a} cheap<br> "),
+                        line=dict(width=0.5, color="grey")),  # outline so pale dots show
         ))
 
         # regression line across the whole chart
         line_x = np.array(axis_range)  # the two ends of the x-axis
         fig.add_trace(go.Scatter(x=line_x, y=alpha + beta * line_x, mode="lines",
-                                 name="Regression line", line=dict(color="white", width=2)))
+                                 name="Regression line", line=dict(color="black", width=2)))
 
     # axis labels as a percentage with the same range every year
     fig.update_xaxes(title=f"{stock_b} Daily Return", range=axis_range,
@@ -189,14 +191,14 @@ def make_history(df: pd.DataFrame, year: int) -> go.Figure:
     fig.add_trace(go.Scatter(x=summary["Year"], y=summary["Beta"], mode="lines+markers",
                              name="Beta", line=dict(color="orange")))
     # shade the year shown in the top chart
-    fig.add_vrect(x0=year - 0.5, x1=year + 0.5, fillcolor="white", opacity=0.15, line_width=0)
+    fig.add_vrect(x0=year - 0.5, x1=year + 0.5, fillcolor="grey", opacity=0.2, line_width=0)
     # dotted line showing beta across all years to compare each year against
     fig.add_hline(y=beta_all, line_dash="dot", annotation_text=f"All-years beta {beta_all:.2f}")
     # same years on the x-axis for every pair, labelled every 2 years
     fig.update_xaxes(range=[FIRST_YEAR - 0.5, LAST_YEAR + 0.5], dtick=2)
     subtitle = f"Shaded year: {year}. Hover over a bar for that year's numbers."
     fig = style_figure(fig, "Beta and R-squared by Year", subtitle, height=400)
-    fig.update_layout(showlegend=True)  # show the legend here (it's off by default in style_figure)
+    fig.update_layout(showlegend=True)  # show the legend (style_figure turns it off)
     return fig
 
 
