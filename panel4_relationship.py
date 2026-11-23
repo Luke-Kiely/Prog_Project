@@ -205,3 +205,11 @@ def make_charts(pair_name: str, year: int, z_window: int) -> tuple:
     # Gradio sliders give decimals so convert to whole numbers
     df = prepare_pair(pair_name, int(z_window))
     return make_scatter(df, pair_name, int(year)), make_history(df, int(year))
+
+
+# Play turns on a timer that moves the year slider
+def start_playing(year: int) -> tuple:
+    """Starts playing, going back to the start if already at the end."""
+    if int(year) >= LAST_YEAR:
+        year = FIRST_YEAR
+    return year, gr.Timer(active=True)  # switch the timer on
