@@ -118,7 +118,7 @@ def make_heatmap(results, cutoff=0.05, view="Both", selected=None):
                       yaxis=dict(autorange="reversed", scaleanchor="x", showgrid=False))
     for stock_a, stock_b in RIVAL_PAIRS:                        # outline the 10 rival pairs
         i, j = TICKERS.index(stock_a), TICKERS.index(stock_b)
-        cells = [(i, j), (j, i)]                                # outline both halves
+        cells = {"Both": [(i, j), (j, i)], "Tethered": [(i, j)], "Correlated": [(j, i)]}[view]
         for r, c in cells:
             fig.add_shape(type="rect", x0=c - 0.5, x1=c + 0.5, y0=r - 0.5, y1=r + 0.5,
                           line=dict(color="black", width=2))
