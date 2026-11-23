@@ -92,7 +92,7 @@ def make_figure(label, period):
     fig.add_hline(y=y, line=dict(color=colour, width=1, dash="dash" if y else "solid"), row=2, col=1, annotation_text=label, annotation_position=pos, annotation_font_color=colour, annotation_bgcolor="rgba(255, 255,255,0.85)")
   fig.add_bar(x=trades.exit, y=trades.pnl, name="Trade P&L", showlegend=False, customdata=running_total, marker_color=np.where(trades.pnl > 0, COLOURS["long"], COLOURS["short"]), hovertemplate="Trade P&L: %{y:+.1%}<br>Running Total: %{customdata:+.1%}<extra></extra>", row=3, col=1)
   fig.add_hline(y=0, line=dict(color=COLOURS["fair"], width=1), row=3, col=1)
-  fig.update_layout(title=dict(text=title, x=0.01), height=760, template="plotly_white", hovermode="closest", margin=dict(t=90, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
+  fig.update_layout(title=dict(text=title, x=0.01), height=760, template="plotly_dark", hovermode="closest", margin=dict(t=90, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
   fig.update_annotations(selector=dict(xref="paper"), x=0, xanchor="left", font=dict(size=13, color=COLOURS["ink"]))
   fig.update_xaxes(showline=True, mirror=True, linecolor="#d9d9d6")
   fig.update_yaxes(showline=True, mirror=True, linecolor="#d9d9d6")
