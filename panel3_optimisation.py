@@ -1,3 +1,9 @@
+"""Panel 3 - Strategy Optimisation (Mathew)
+
+Tests 36 pairs trading settings on past prices, then checks whether the best one
+still works on later prices. Run it with: python panel3_optimisation.py
+"""
+
 from pathlib import Path
 
 import gradio as gr
@@ -5,9 +11,6 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import yfinance as yf
-
-# Panel 3 - Strategy Optimisation
-# Does the best pairs trading setting from past data still work in future data?
 
 PRICE_FILE = Path("data") / "prices.csv"
 
