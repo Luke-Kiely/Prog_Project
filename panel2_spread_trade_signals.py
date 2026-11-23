@@ -1,7 +1,7 @@
 """Panel 2 - Spread & Trade Signals. Top: A's price vs the fair value implied by B. It marks the trades. Bottom: z-score of the gap"""
 
 from functools import lru_cache
-
+from pathlib import path
 import gradio as gr
 import numpy as np
 import pandas as pd
@@ -20,7 +20,14 @@ COLOURS = {"a": "#2a78d6", "fair": "#898781", "long": "#0ca30c", "short": "#d03b
 @lru_cache(maxsize=1)
 def load_prices():
   tickers = [t for pair in RIVAL_PAIRS for t in pair]
-  return yf.download(tickers, start="2000-01-01", auto_adjust=True, progress=False)["Close"]
+  try: 
+    prices = yf.download(tickers, start="2000-01-01", auto_adjust=True, progress=False)["Close"]
+    if prices.empty or prices.isna().all().any():
+      raise ValueError("incomplete download")
+    return prices
+  except Exception as error:
+    print("Yahoo Finance unavailable, using saved copy:", error)
+    return pd.read_csv(Path(__file__).parent / "data" / "prices.csv", index_col=0, parse_dates=True)
   
 def build_signals(prices, a, b):
   df = np.log(prices[[a,b]].dropna())
