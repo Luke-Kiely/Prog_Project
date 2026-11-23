@@ -63,7 +63,7 @@ def hover_text(t, a, b):
   action = f"Buy {a}, Short {b}" if t.side == 1 else f"Short {a}, Buy {b}"
   return (f"<b>{action}</b><br>Entry: {t.entry:%d %b %Y}<br>" f"Exit: {t.exit:%d %b %Y}{' (stop-loss)' if t.stopped else''}<br>" f"Held: {t.days} days<br><b>P&L: {t.pnl:+.1%}</b>")
                                                                         
-def make_figure(label, year_from, year_to):
+def make_figure(label, period):
   a, b, sig, trades = window(label, period)
   dates = f"{sig.index.min():%b %Y} - {sig.index.max():%b %Y}" if len(sig) else "no data"
   if trades.empty:
