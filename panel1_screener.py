@@ -137,6 +137,22 @@ def panel1(first_year=2000, last_year=2026, alpha=0.05, bonferroni=False, half=F
     cutoff = alpha / len(results) if bonferroni else alpha     # Bonferroni: divide by the number of tests
     return make_heatmap(results, cutoff, half)
 
+def build_panel1():
+    """Panel 1 for the dashboard: the heatmap plus its controls."""
+    plot = gr.Plot(panel1())                                    # heatmap with default settings
+    with gr.Row():
+        first_year = gr.Slider(2000, 2026, value=2000, step=1, label="From (year)")
+        last_year = gr.Slider(2000, 2026, value=2026, step=1, label="To (year)")
+    with gr.Row():
+        alpha = gr.Radio([0.01, 0.05, 0.10], value=0.05, label="Significance level")
+        bonferroni = gr.Checkbox(label="Bonferroni correction")
+        half = gr.Checkbox(label="Show each pair once")
+    controls = [first_year, last_year, alpha, bonferroni, half]
+    for slider in (first_year, last_year):
+        slider.release(panel1, controls, plot)                  # redraw when a slider is let go
+    for control in (alpha, bonferroni, half):
+        control.change(panel1, controls, plot)                  # instant: results are cached
+
 if __name__ == "__main__":                                               # only runs when run directly
     prices = load_prices()
     print(f"Prices: {prices.shape[0]} days x {prices.shape[1]} stocks")
@@ -145,3 +161,4 @@ if __name__ == "__main__":                                               # only 
     print(results.nsmallest(10, "p_value")[["pair", "p_value", "correlation", "half_life"]].round(4))
     panel1().write_html("heatmap.html")                                  # default settings
     panel1(bonferroni=True, half=True).write_html("heatmap_half.html")   # Bonferroni + half
+
