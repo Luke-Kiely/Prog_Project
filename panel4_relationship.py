@@ -128,11 +128,16 @@ def yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
 
 def style_figure(fig: go.Figure, title: str, subtitle: str, height: int) -> go.Figure:
     """Applies the same styling to both charts."""
-    fig.update_layout(title=f"{title}<br><sup>{subtitle}</sup>", template="plotly_dark",
-                      height=height, showlegend=False, margin=dict(t=90))  # top room for the title
-    # turn off zoom on both axes
-    fig.update_xaxes(fixedrange=True)
-    fig.update_yaxes(fixedrange=True)
+    # bold title with a smaller grey subtitle underneath
+    title = (f"<b>{title}</b><br>"
+             f"<span style='font-size:13px; color:#a0a4ab'>{subtitle}</span>")
+    fig.update_layout(title=dict(text=title, font_size=20, x=0.02), template="plotly_dark",
+                      font=dict(family="Arial", size=13, color="#e6e6e6"),  # all other text
+                      hoverlabel=dict(font_size=13), legend=dict(font_size=13),
+                      height=height, showlegend=False, margin=dict(t=95))  # top room for the title
+    # turn off zoom, and make axis titles bigger than the tick numbers
+    fig.update_xaxes(fixedrange=True, title_font_size=15, tickfont=dict(size=12, color="#a0a4ab"))
+    fig.update_yaxes(fixedrange=True, title_font_size=15, tickfont=dict(size=12, color="#a0a4ab"))
     return fig
 
 
@@ -166,7 +171,7 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
             marker=dict(size=8, color=this_year["z"], cmin=-Z_CAP, cmax=Z_CAP,
                         colorscale=[[0, "#2a78d6"], [0.5, "#8a919c"], [1, "#d03b3b"]],
                         # labels at the ends of the colour bar instead of a long title
-                        colorbar=dict(title="Spread z-score", thickness=15, len=0.7,
+                        colorbar=dict(title=dict(text="Spread z-score", side="right"), len=0.7,
                                       tickvals=[-Z_CAP, 0, Z_CAP],
                                       ticktext=[f"-3 ({stock_a} cheap)", "0 (normal)",
                                                 f"+3 ({stock_a} expensive)"]),
