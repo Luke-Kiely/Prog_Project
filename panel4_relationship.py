@@ -324,6 +324,7 @@ def build_panel4():
     play_button.click(start_playing, year_slider, [year_slider, timer])
     pause_button.click(stop_playing, None, timer)
     timer.tick(next_year, year_slider, [year_slider, timer])
+    return pair_dropdown                # so the dashboard can change the pair
 
 
 if __name__ == "__main__":
