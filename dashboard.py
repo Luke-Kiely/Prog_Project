@@ -3,7 +3,7 @@
 import gradio as gr
 
 from panel1_screener import build_panel1
-from panel2_spread&trade_signals import build_panel2
+from panel2_spread_trade_signals import build_panel2
 from panel3_optimisation import build_panel3
 from panel4_relationship import build_panel4
 
