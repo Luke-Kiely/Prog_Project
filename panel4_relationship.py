@@ -182,26 +182,32 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
 
 
 def make_history(df: pd.DataFrame, year: int) -> go.Figure:
-    """Builds the bottom chart: beta (line) and R-squared (bars) for each year."""
+    """Builds the bottom chart: beta (line) and R-squared (bars) for each year,
+    with the year shown in the top chart picked out."""
     summary = yearly_summary(df)
     beta_all = regression(df["ret_b"], df["ret_a"])[0]  # beta over all years ([0] = beta)
     fig = go.Figure()
 
-    # R-squared as bars, with each year's numbers shown on hover
+    chosen = summary[summary["Year"] == year]  # the year shown in the top chart
+
+    # R-squared as bars, with the chosen year solid and the rest faded
     fig.add_trace(go.Bar(x=summary["Year"], y=summary["R-squared"], name="R-squared",
-                         marker_color="#2a78d6", hovertext=summary["Hover"], hoverinfo="text"))
-    # beta as a white line with a dot per year
+                         marker_color="#2a78d6", hovertext=summary["Hover"], hoverinfo="text",
+                         marker_opacity=np.where(summary["Year"] == year, 1, 0.4)))
+    # beta as a white line, the same colour as the regression line above
     fig.add_trace(go.Scatter(x=summary["Year"], y=summary["Beta"], mode="lines+markers",
-                             name="Beta", line=dict(color="white")))
-    # shade the year shown in the top chart
-    fig.add_vrect(x0=year - 0.5, x1=year + 0.5, fillcolor="grey", opacity=0.2, line_width=0)
+                             name="Beta", line=dict(color="white"), hoverinfo="skip"))
+    # big dot on the chosen year's beta: the slope of the line in the top chart
+    fig.add_trace(go.Scatter(x=chosen["Year"], y=chosen["Beta"], mode="markers",
+                             marker=dict(size=16, color="white"), showlegend=False,
+                             hoverinfo="skip"))
     # dotted line showing beta across all years to compare each year against
     fig.add_hline(y=beta_all, line_dash="dot", line_color="#8a919c",
                   annotation_text=f"All-years beta {beta_all:.2f}")
     # same years on the x-axis for every pair, labelled every 2 years
     fig.update_xaxes(range=[FIRST_YEAR - 0.5, LAST_YEAR + 0.5], dtick=2)
-    subtitle = f"Shaded year: {year}. Hover over a bar for that year's numbers."
-    fig = style_figure(fig, "Beta and R-squared by Year", subtitle, height=400)
+    subtitle = "Big white dot = the slope of the line above. Hover over a bar for its numbers."
+    fig = style_figure(fig, f"How {year} compares with every other year", subtitle, height=400)
     fig.update_layout(showlegend=True)  # show the legend (style_figure turns it off)
     return fig
 
@@ -254,10 +260,9 @@ def build_panel4():
         play_button = gr.Button("Play")
         pause_button = gr.Button("Pause")
     year_slider = gr.Slider(FIRST_YEAR, LAST_YEAR, value=FIRST_YEAR, step=1, label="Year")
-    # the two charts, each in its own box
+    # both charts together in one box
     with gr.Column(variant="panel"):
         scatter_plot = gr.Plot(first_scatter, show_label=False)
-    with gr.Column(variant="panel"):
         history_plot = gr.Plot(first_history, show_label=False)
     timer = gr.Timer(PLAY_SECONDS, active=False)  # ticks every second while playing, off at start
 
