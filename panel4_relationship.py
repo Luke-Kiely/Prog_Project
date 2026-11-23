@@ -160,7 +160,8 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
             text=this_year["z"].round(2),  # z-score shown when hovering
             marker=dict(size=8, color=this_year["z"], colorscale="RdBu_r", cmin=-Z_CAP, cmax=Z_CAP,
                         colorbar=dict(title=f"Spread z-score<br>Red = {stock_a} expensive<br>"
-                                            f"Blue = {stock_a} cheap<br> ")),
+                                            f"Blue = {stock_a} cheap<br> "),
+                        line=dict(width=0.5, color="grey")),  # outline so pale dots show
         ))
 
         # regression line across the whole chart
