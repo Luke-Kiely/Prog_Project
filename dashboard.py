@@ -134,6 +134,7 @@ with gr.Blocks(title=TITLE) as demo:
       links += result                        # Introduction page: its "Open" buttons
     elif result is not None:
       pickers.append(result)                 # panels 2, 3 and 4: their own pair picker
+      result.visible = False                 # hidden here: the top dropdown controls it
     sections.append(section)
   gr.Markdown("Data: daily closing prices from Yahoo Finance via yfinance, 2000 to today.", elem_id="source")
   top_pair.change(pick_pair, top_pair, pickers)
