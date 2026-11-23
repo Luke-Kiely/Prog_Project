@@ -75,17 +75,20 @@ def make_figure(label, period):
   is_long = trades.side == 1
   running_total = (1 + trades.pnl).cumprod() - 1
 
-  fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.05, row_heights=[0.5, 0.27, 0.23])
+  fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.09, row_heights=[0.5, 0.27, 0.23], subplot_titles=(f"1. {a} Price vs Its Fair Value Based On {b}", "2. How Stretched The Gap is (Z-Score)", "3. Profit or Loss On Each Trade"))
   fig.add_scatter(x=sig.index, y=sig.fair, name=f"{a} fair value (based on {b})", customdata=sig[b], line=dict(color=COLOURS["fair"], width=1.5, dash="dot"), row=1, col=1, hovertemplate=f"Fair value: $%{{y:.2f}}<br>{b}: $%{{customdata:.2f}}<extra></extra>")
   fig.add_scatter(x=sig.index, y=sig[a], name=f"{a} price", line=dict(color=COLOURS["a"], width=2), fill="tonexty", fillcolor="rgba(42,120,214,0.12)", row=1, col=1, hovertemplate=f"{a}: $%{{y:.2f}}<extra></extra>")
   fig.add_scatter(x=trades.entry, y=sig[a].reindex(trades.entry), mode="markers", name="Entry (▲ buy / ▼ short)", text=text, hovertemplate="%{text}<extra></extra>", marker=dict(size=12, line=dict(width=1.5, color="white"), symbol=np.where(is_long, "triangle-up", "triangle-down"), color=np.where(is_long, COLOURS["long"], COLOURS["short"])), row=1, col=1)
   fig.add_scatter(x=trades.exit, y=sig[a].reindex(trades.exit), mode="markers", name="Exit", text=text, hovertemplate="%{text}<extra></extra>", marker=dict(size=9, color="white", line=dict(width=2, color=COLOURS["ink"])), row=1, col=1)
   fig.add_scatter(x=sig.index, y=sig.z, name="Z-score", showlegend=False, line=dict(color=COLOURS["ink"], width=1.5), hovertemplate="z = %{y:.2f}<extra></extra>", row=2, col=1)
   for y, colour, label, pos in [(ENTRY_Z, COLOURS["short"], f"{a} expensive: short {a}", "top left"), (-ENTRY_Z, COLOURS["long"], f"{a} cheap: buy {a}", "bottom left"), (0, COLOURS["fair"], "", "top left")]:
-    fig.add_hline(y=y, line=dict(color=colour, width=1, dash="dash" if y else "solid"), row=2, col=1, annotation_text=label, annotation_position=pos, annotation_font_color=colour)
+    fig.add_hline(y=y, line=dict(color=colour, width=1, dash="dash" if y else "solid"), row=2, col=1, annotation_text=label, annotation_position=pos, annotation_font_color=colour, annotation_bgcolor="rgba(255, 255,255,0.85)")
   fig.add_bar(x=trades.exit, y=trades.pnl, name="Trade P&L", showlegend=False, customdata=running_total, marker_color=np.where(trades.pnl > 0, COLOURS["long"], COLOURS["short"]), hovertemplate="Trade P&L: %{y:+.1%}<br>Running Total: %{customdata:+.1%}<extra></extra>", row=3, col=1)
   fig.add_hline(y=0, line=dict(color=COLOURS["fair"], width=1), row=3, col=1)
   fig.update_layout(title=dict(text=title, x=0.01), height=760, template="plotly_white", hovermode="closest", margin=dict(t=90, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
+  fig.update_annotations(selector=dict(xref="paper"), x=0, xanchor="left", font=dict(size=13, color=COLOURS["ink"]))
+  fig.update_xaxes(showline=True, mirror=True, linecolor="#d9d9d6")
+  fig.update_yaxes(showline=True, mirror=True, linecolor="#d9d9d6")
   fig.update_yaxes(title_text=f"{a} price", tickprefix="$", row=1, col=1)
   fig.update_yaxes(title_text="Gap (z-score)", zeroline=False, row=2, col=1)
   fig.update_yaxes(title_text="P&L Per Trade", tickformat="+.0%", zeroline=False, row=3, col=1)
