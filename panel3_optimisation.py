@@ -50,6 +50,7 @@ def load_prices():
         print("Yahoo Finance unavailable:", e)
         prices = pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
         print("Using the saved copy in", PRICE_FILE)
+    print(f"{len(prices)} trading days, {prices.index[0]:%b %Y} to {prices.index[-1]:%b %Y}")
     return prices
 
 
@@ -148,13 +149,16 @@ def draw_surface(table, best, sample, title):
     fig = go.Figure()
     fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=grid.values, colorscale=SHARPE_COLOURS,
                              contours=dict(x=dict(show=True, color="#111111"), y=dict(show=True, color="#111111")),
-                             cmin=-limit, cmax=limit, colorbar_title="Sharpe"))
+                             cmin=-limit, cmax=limit, colorbar_title="Sharpe",
+                             hovertemplate="Entry %{x} sd<br>Lookback %{y} days<br>Sharpe %{z:.2f}<extra></extra>"))
+    fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=np.zeros(grid.shape), opacity=0.25,
+                             colorscale=[[0, "white"], [1, "white"]], showscale=False, hoverinfo="skip"))   # Sharpe = 0 plane
     fig.add_trace(go.Scatter3d(x=[best["entry"]] * 2, y=[best["window"]] * 2, z=[-limit, limit],
                                mode="lines", line=dict(color="white", width=8),
                                name="Best in-sample setting"))   # vertical line, never hidden
     fig.update_layout(title=title, height=650, template="plotly_dark", margin=dict(l=0, r=0, t=50, b=0),
                       scene=dict(xaxis_title="Entry (z-score)", yaxis_title="Lookback (days)",
-                                 zaxis_title="Sharpe", zaxis_range=[-limit, limit],
+                                 zaxis_title="Sharpe ratio", zaxis_tickvals=[-1, 0, 1], zaxis_range=[-limit, limit],
                                  camera=dict(eye=dict(x=1.6, y=-1.6, z=0.9))))
     return fig
 
@@ -209,6 +213,7 @@ panel3_app = gr.Interface(
     title="Panel 3: Does the best strategy still work out-of-sample?",
     live=True,
     flagging_mode="never",
+    clear_btn=None,
     description="Drag to rotate the chart and hover for exact values. White line = best "
                 "in-sample setting. Source: Yahoo Finance via yfinance.",
 )
