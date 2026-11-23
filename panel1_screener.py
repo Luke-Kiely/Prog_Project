@@ -81,7 +81,7 @@ def screen_all_pairs(log_prices):
                 rows.append(result)
     return pd.DataFrame(rows)
 
-def make_heatmap(results, cutoff=0.05, half=False):
+def make_heatmap(results, cutoff=0.05, half=False, selected=None):
     """Heatmap of p-values: darker = smaller p, dot = tethered, black box = rival pair."""
     n = len(TICKERS)
     colours = np.full((n, n), np.nan)                           # empty 20x20 grid (diagonal stays blank)
@@ -117,6 +117,12 @@ def make_heatmap(results, cutoff=0.05, half=False):
         for r, c in cells:
             fig.add_shape(type="rect", x0=c - 0.5, x1=c + 0.5, y0=r - 0.5, y1=r + 0.5,
                           line=dict(color="black", width=2))
+    if selected:                                                # outline the chosen pair in red
+        stock_a, stock_b = selected.split(" / ")
+        i, j = TICKERS.index(stock_a), TICKERS.index(stock_b)
+        for r, c in ([(i, j)] if half else [(i, j), (j, i)]):
+            fig.add_shape(type="rect", x0=c - 0.5, x1=c + 0.5, y0=r - 0.5, y1=r + 0.5,
+                          line=dict(color="red", width=4))      
     return fig
 
 CACHE = {}                                                      # results already worked out this run
@@ -130,14 +136,14 @@ def get_results(first_year=2000, last_year=2026):
         CACHE[(first_year, last_year)] = screen_all_pairs(np.log(prices))
     return CACHE[(first_year, last_year)]
 
-def panel1(first_year=2000, last_year=2026, alpha=0.05, bonferroni=False, half=False):
+def panel1(first_year=2000, last_year=2026, alpha=0.05, bonferroni=False, half=False, pair="KO / PEP"):
     """Everything the group dashboard needs: the Panel 1 heatmap for these settings."""
     first_year, last_year = sorted([int(first_year), int(last_year)])
     results = get_results(first_year, last_year)
     if results.empty:
         return go.Figure(layout=dict(title="Not enough data in those years. Pick a longer range."))
     cutoff = alpha / len(results) if bonferroni else alpha     # Bonferroni: divide by the number of tests
-    return make_heatmap(results, cutoff, half)
+    return make_heatmap(results, cutoff, half, pair)
 
 def build_panel1():
     """Panel 1 for the dashboard: the heatmap plus its controls."""
