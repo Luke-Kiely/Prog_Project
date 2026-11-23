@@ -56,13 +56,15 @@ footer {display: none !important;}
 """
 
 
-# One preview tile per panel: (tab name, one-line caption, function that draws that panel's default chart)
-PREVIEWS = [("1. Screener", "Which of the 190 pairs are tethered?", lambda: p1.panel1()),
-            ("2. Spread & Trade Signals", "Where a trader would buy and sell", lambda: p2.make_figure(p2.LABELS[0], "3Y")),
+# One preview tile per panel: (tab name, one-line caption, function that draws that panel's chart for a pair)
+PREVIEWS = [("1. Screener", "Which of the 190 pairs are tethered?", lambda name: p1.panel1()),
+            ("2. Spread & Trade Signals", "Where a trader would buy and sell",
+             lambda name: p2.make_figure(pick_pair(name)[0], "3Y")),
             ("3. Optimisation", "Do the best settings survive new data?",
-             lambda: p3.update_panel("KO vs PEP", "In-sample", 70, 5)[0]),
+             lambda name: p3.update_panel(pick_pair(name)[1], "In-sample", 70, 5)[0]),
             ("4. Relationship", "How closely the rivals move, year by year",
-             lambda: p4.make_charts(list(p4.PAIRS)[0], p4.LAST_YEAR, 60)[1])]
+             lambda name: p4.make_charts(name, p4.LAST_YEAR, 60)[1])]
+TILES = []                                   # the four preview charts, so the top dropdown can redraw them
 
 
 def thumbnail(fig):
@@ -77,6 +79,11 @@ def thumbnail(fig):
   return fig
 
 
+def draw_tiles(name):
+  """Redraw all four preview tiles for the chosen pair."""
+  return [thumbnail(make(name)) for _, _, make in PREVIEWS]
+
+
 def build_overview():
   """Introduction page: a 2 x 2 grid of panel previews, then the written overview."""
   links = []
@@ -85,7 +92,7 @@ def build_overview():
       for name, caption, make in row:
         with gr.Column(elem_classes="tile"):
           gr.Markdown(f"### {name}\n{caption}")
-          gr.Plot(thumbnail(make()), show_label=False)
+          TILES.append(gr.Plot(thumbnail(make(list(PAIRS)[0])), show_label=False))
           links.append((gr.Button(f"Open {name} →", size="sm"), name))
   gr.Markdown(OVERVIEW)
   return links
@@ -130,6 +137,7 @@ with gr.Blocks(title=TITLE) as demo:
     sections.append(section)
   gr.Markdown("Data: daily closing prices from Yahoo Finance via yfinance, 2000 to today.", elem_id="source")
   top_pair.change(pick_pair, top_pair, pickers)
+  top_pair.change(draw_tiles, top_pair, TILES)   # the Introduction tiles follow the dropdown too
   for button in buttons:
     button.click(show, button, sections + buttons)
   for link, name in links:                   # each preview tile's "Open" button jumps to its tab
