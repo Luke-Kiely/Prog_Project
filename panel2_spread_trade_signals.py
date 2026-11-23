@@ -120,6 +120,7 @@ def build_panel2():
   pair.change(make_figure, [pair, period], plot)
   for button in buttons:
     button.click(pick_period, [pair, button], [period, plot] + buttons)
+  return pair                          # so the dashboard can change the pair
 
 if __name__ == "__main__":
   print("Downloading prices...")

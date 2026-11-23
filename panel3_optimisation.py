@@ -270,6 +270,7 @@ def build_panel3():
     controls = [pair, sample, in_sample_pct, cost_bps]
     for control in controls:
         control.change(update_panel, controls, [chart, summary])      # redraw when anything changes
+    return pair                         # so the dashboard can change the pair
 
 
 if __name__ == "__main__":

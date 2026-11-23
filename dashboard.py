@@ -10,7 +10,7 @@ pio.templates.default = "plotly_dark"                  # any chart without its o
 from panel1_screener import build_panel1
 from panel2_spread_trade_signals import build_panel2
 from panel3_optimisation import build_panel3
-from panel4_relationship import build_panel4
+from panel4_relationship import build_panel4, PAIRS
 
 TITLE = "Trading the Rival Gap"
 SUBTITLE = "Can ten rival-stock pairs, from Coke vs Pepsi to Nvidia vs AMD, be traded for profit?"
@@ -58,6 +58,11 @@ PANELS = [("Introduction", build_overview), ("1. Screener", build_panel1), ("2. 
           ("3. Optimisation", build_panel3), ("4. Relationship", build_panel4)]
 
 
+def pick_pair(name):
+  """Turn one pair name into the name each panel uses, e.g. KO / PEP, KO vs PEP, Coca-Cola vs PepsiCo."""
+  a, b = PAIRS[name]
+  return f"{a} / {b}", f"{a} vs {b}", name
+
 def show(chosen):
   """Show the chosen page, hide the others, and highlight its button."""
   sections = [gr.Column(visible=name == chosen) for name, _ in PANELS]
@@ -70,12 +75,19 @@ with gr.Blocks(title=TITLE) as demo:
           f"<h1>{TITLE}</h1><p>{SUBTITLE}</p></div>")
   with gr.Row(elem_id="nav"):
     buttons = [gr.Button(name, variant="primary" if i == 0 else "secondary") for i, (name, _) in enumerate(PANELS)]
-  sections = []
+  with gr.Row():                       # pair picker, centred under the tabs
+    with gr.Column(scale=1): pass
+    top_pair = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair (changes every panel)", scale=2)
+    with gr.Column(scale=1): pass
+  sections, pickers = [], []
   for i, (name, build) in enumerate(PANELS):
     with gr.Column(visible=i == 0) as section:
-      build()
+      picker = build()
+      if picker:
+        pickers.append(picker)        # panels 2, 3 and 4 hand back their pair picker
     sections.append(section)
   gr.Markdown("Data: daily closing prices from Yahoo Finance via yfinance, 2000 to today.", elem_id="source")
+  top_pair.change(pick_pair, top_pair, pickers)
   for button in buttons:
     button.click(show, button, sections + buttons)
 
