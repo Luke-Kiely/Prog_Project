@@ -1,4 +1,4 @@
-"""Panel 1 calculations: download prices and test every pair of rivals."""
+"""Panel 1: test every pair of stocks for cointegration and draw the heatmap."""
 from pathlib import Path
 
 import numpy as np
@@ -81,7 +81,7 @@ def screen_all_pairs(log_prices):
     return pd.DataFrame(rows)
 
 def make_heatmap(results, cutoff=0.05, half=False):
-    """Grid of p-values for every pair: darker = smaller p-value."""
+    """Heatmap of p-values: darker = smaller p, dot = tethered, black box = rival pair."""
     n = len(TICKERS)
     colours = np.full((n, n), np.nan)                           # empty 20x20 grid (diagonal stays blank)
     dots = np.full((n, n), "", dtype=object)                    # a dot on the tethered pairs
