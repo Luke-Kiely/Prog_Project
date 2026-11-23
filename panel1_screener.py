@@ -93,16 +93,15 @@ def make_heatmap(results, cutoff=0.05, view="Both", selected=None):
         i, j = TICKERS.index(stock_a), TICKERS.index(stock_b)   # row and column of each stock
         colours[i, j] = colours[j, i] = row["p_value"]          # same pair in both halves
         corr[i, j] = corr[j, i] = row["correlation"]
-        hover[i, j] = hover[j, i] = (f"<b>{row['pair']}</b><br>p-value: {row['p_value']:.4f}"
-                                     f"<br>Correlation: {row['correlation']:.2f}"
-                                     f"<br>Half-life: {row['half_life']:.0f} days")
+        hover[i, j] = (f"<b>{row['pair']}</b><br>p-value: {row['p_value']:.4f}"
+                       f"<br>Half-life: {row['half_life']:.0f} days")                 
+        hover[j, i] = f"<b>{row['pair']}</b><br>Correlation: {row['correlation']:.2f}"   
         if row["p_value"] < cutoff:
             dots[i, j] = dots[j, i] = "●"
-    if view == "Both":
-        lower = np.tril(np.ones((n, n), dtype=bool))            # True on and below the diagonal
-        colours[lower] = np.nan
-        dots[lower] = ""  
-        corr[np.triu(np.ones((n, n), dtype=bool))] = np.nan     # correlation only in the bottom left  
+    lower = np.tril(np.ones((n, n), dtype=bool))            # True on and below the diagonal
+    colours[lower] = np.nan
+    dots[lower] = ""  
+    corr[np.triu(np.ones((n, n), dtype=bool))] = np.nan     # correlation only in the bottom left  
     fig = go.Figure(go.Heatmap(z=colours, visible=view != "Correlated", x=TICKERS, y=TICKERS,
                                colorscale="Blues_r", zmin=0, zmax=1, xgap=1, ygap=1, colorbar=dict(title="p-value"),
                                customdata=hover, hovertemplate="%{customdata}<extra></extra>",
