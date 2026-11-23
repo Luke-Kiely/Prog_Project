@@ -5,3 +5,4 @@ plotly>=5.20
 yfinance>=0.2.54
 statsmodels
 jinja2>=3.1.6
+statsmodels>=0.14
