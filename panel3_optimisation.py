@@ -45,7 +45,7 @@ STRESS_LEVEL = 20                           # VIX at or above this = stressed ma
 def load_prices():
     """Download prices from Yahoo Finance, or use the saved copy if that fails."""
     try:
-        prices = yf.download(TICKERS, start="2000-01-01", auto_adjust=True, progress=False)["Close"]
+        prices = yf.download(TICKERS, start="2000-01-01", end="2026-11-21" auto_adjust=True, progress=False)["Close"]
         missing = [ticker for ticker in TICKERS if prices[ticker].isna().all()]
         if missing:
             raise ValueError(f"no prices for {missing}")
@@ -182,7 +182,7 @@ def draw_surface(table, best, sample, title):
     fig = go.Figure()
     fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=grid.values, colorscale=SHARPE_COLOURS,
                              contours=dict(x=dict(show=True, color="#111111"), y=dict(show=True, color="#111111")),
-                             cmin=-limit, cmax=limit, colorbar_title="Sharpe",
+                             cmin=-limit, cmax=limit, colorbar_title="Sharpe ratio",
                              hovertemplate="Entry %{x} sd<br>Lookback %{y} days<br>Sharpe %{z:.2f}<extra></extra>"))
     fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=np.zeros(grid.shape), opacity=0.25,
                              colorscale=[[0, "white"], [1, "white"]], showscale=False, hoverinfo="skip"))   # Sharpe = 0 plane
@@ -190,7 +190,7 @@ def draw_surface(table, best, sample, title):
                                mode="lines+text", text=["", "Best in-sample"], line=dict(color="white", width=8),
                                name="Best in-sample setting"))   # vertical line, never hidden
     fig.update_layout(title=title, height=650, template="plotly_dark", margin=dict(l=0, r=0, t=70, b=0),
-                      scene=dict(xaxis_title="Entry threshold (sd)", yaxis_title="Lookback window (days)",
+                      scene=dict(xaxis_title="Entry threshold (sd)", yaxis_title="Lookback window (days)", yaxis_type="log", yaxis_tickvals=WINDOWS,
                                  zaxis_title="Sharpe ratio", zaxis_tickvals=[-1, 0, 1], zaxis_range=[-limit, limit],
                                  camera=dict(eye=dict(x=1.6, y=-1.6, z=0.9))))
     return fig
@@ -239,21 +239,17 @@ all_vix = load_vix()
 
 first_fig, first_summary = update_panel("KO vs PEP", "In-sample", 70, 5)   # shown when the page opens
 
-panel3_app = gr.Interface(
-    fn=update_panel,
-    inputs=[gr.Dropdown(list(PAIRS), value="KO vs PEP", label="Rival pair"),
-            gr.Radio(["In-sample", "Out-of-sample"], value="In-sample", label="Show"),
-            gr.Slider(50, 90, value=70, step=5, label="In-sample period (% of days)"),
-            gr.Slider(0, 20, value=5, step=1, label="Trading cost per trade (basis points)")],
-    outputs=[gr.Plot(value=first_fig, label="Sharpe ratio for every setting"),
-             gr.Dataframe(value=first_summary, label="Best in-sample setting")],
-    title="Panel 3: Does the best strategy still work out-of-sample?",
-    live=True,
-    flagging_mode="never",
-    clear_btn=None,
-    description="Drag to rotate the chart and hover for exact values. White line = best "
-                "in-sample setting. Sources: Yahoo Finance via yfinance, VIX from the FRED API.",
-)
+EXPLANATION = """
+### How to read the chart
+- **The floor** shows the 36 settings we tested: how stretched the gap has to be before we trade (entry, in standard deviations) and how many past days count as "normal" (lookback).
+- **Height and colour** show the Sharpe ratio: yearly return per unit of risk, after trading costs. Blue above the grey sheet made money, red below it lost money.
+- **The white line** is the setting with the best Sharpe on the in-sample days.
+- **Switch Show to Out-of-sample** to test that same setting on later days it never saw. If the white line ends up below the sheet, the "best" setting was only fitted to the past.
+
+### The table
+- **Luck test:** flips a coin for every day's result 500 times. Under 5% means probably not luck.
+- **Calm vs stressed:** splits the later days using the VIX, the market's "fear index" from FRED. A VIX of 20 or more counts as stressed.
+"""
 
 
 def build_panel3():
