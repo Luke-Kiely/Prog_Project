@@ -124,7 +124,7 @@ def yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
 
 def style_figure(fig: go.Figure, title: str, subtitle: str, height: int) -> go.Figure:
     """Applies the same styling to both charts."""
-    fig.update_layout(title=f"{title}<br><sup>{subtitle}</sup>", template="plotly_white",
+    fig.update_layout(title=f"{title}<br><sup>{subtitle}</sup>", template="plotly_dark",
                       height=height, showlegend=False, margin=dict(t=90))  # top room for the title
     # turn off zoom on both axes
     fig.update_xaxes(fixedrange=True)
@@ -159,16 +159,19 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
         fig.add_trace(go.Scatter(
             x=this_year["ret_b"], y=this_year["ret_a"], mode="markers", name="Spread z-score",
             text=this_year["z"].round(2),  # z-score shown when hovering
-            marker=dict(size=8, color=this_year["z"], colorscale="RdBu_r", cmin=-Z_CAP, cmax=Z_CAP,
-                        colorbar=dict(title=f"Spread z-score<br>Red = {stock_a} expensive<br>"
-                                            f"Blue = {stock_a} cheap<br> "),
+            marker=dict(size=8, color=this_year["z"], cmin=-Z_CAP, cmax=Z_CAP,
+                        colorscale=[[0, "#2a78d6"], [0.5, "#8a919c"], [1, "#d03b3b"]],
+                        # labels at the ends of the colour bar instead of a long title
+                        colorbar=dict(title="Spread z-score", thickness=15, len=0.7,
+                                      tickvals=[-Z_CAP, 0, Z_CAP],
+                                      ticktext=[f"{stock_a} cheap", "0", f"{stock_a} expensive"]),
                         line=dict(width=0.5, color="grey")),  # outline so pale dots show
         ))
 
         # regression line across the whole chart
         line_x = np.array(axis_range)  # the two ends of the x-axis
         fig.add_trace(go.Scatter(x=line_x, y=alpha + beta * line_x, mode="lines",
-                                 name="Regression line", line=dict(color="black", width=2)))
+                                 name="Regression line", line=dict(color="white", width=2)))
 
     # axis labels as a percentage with the same range every year
     fig.update_xaxes(title=f"{stock_b} Daily Return", range=axis_range,
@@ -179,25 +182,32 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
 
 
 def make_history(df: pd.DataFrame, year: int) -> go.Figure:
-    """Builds the bottom chart: beta (line) and R-squared (bars) for each year."""
+    """Builds the bottom chart: beta (line) and R-squared (bars) for each year,
+    with the year shown in the top chart picked out."""
     summary = yearly_summary(df)
     beta_all = regression(df["ret_b"], df["ret_a"])[0]  # beta over all years ([0] = beta)
     fig = go.Figure()
 
-    # R-squared as bars, with each year's numbers shown on hover
+    chosen = summary[summary["Year"] == year]  # the year shown in the top chart
+
+    # R-squared as bars, with the chosen year solid and the rest faded
     fig.add_trace(go.Bar(x=summary["Year"], y=summary["R-squared"], name="R-squared",
-                         hovertext=summary["Hover"], hoverinfo="text"))
-    # beta as an orange line with a dot per year
+                         marker_color="#2a78d6", hovertext=summary["Hover"], hoverinfo="text",
+                         marker_opacity=np.where(summary["Year"] == year, 1, 0.4)))
+    # beta as a white line, the same colour as the regression line above
     fig.add_trace(go.Scatter(x=summary["Year"], y=summary["Beta"], mode="lines+markers",
-                             name="Beta", line=dict(color="orange")))
-    # shade the year shown in the top chart
-    fig.add_vrect(x0=year - 0.5, x1=year + 0.5, fillcolor="grey", opacity=0.2, line_width=0)
+                             name="Beta", line=dict(color="white"), hoverinfo="skip"))
+    # big dot on the chosen year's beta: the slope of the line in the top chart
+    fig.add_trace(go.Scatter(x=chosen["Year"], y=chosen["Beta"], mode="markers",
+                             marker=dict(size=16, color="white"), showlegend=False,
+                             hoverinfo="skip"))
     # dotted line showing beta across all years to compare each year against
-    fig.add_hline(y=beta_all, line_dash="dot", annotation_text=f"All-years beta {beta_all:.2f}")
+    fig.add_hline(y=beta_all, line_dash="dot", line_color="#8a919c",
+                  annotation_text=f"All-years beta {beta_all:.2f}")
     # same years on the x-axis for every pair, labelled every 2 years
     fig.update_xaxes(range=[FIRST_YEAR - 0.5, LAST_YEAR + 0.5], dtick=2)
-    subtitle = f"Shaded year: {year}. Hover over a bar for that year's numbers."
-    fig = style_figure(fig, "Beta and R-squared by Year", subtitle, height=400)
+    subtitle = "Big white dot = the slope of the line above. Hover over a bar for its numbers."
+    fig = style_figure(fig, f"How {year} compares with every other year", subtitle, height=400)
     fig.update_layout(showlegend=True)  # show the legend (style_figure turns it off)
     return fig
 
@@ -250,10 +260,9 @@ def build_panel4():
         play_button = gr.Button("Play")
         pause_button = gr.Button("Pause")
     year_slider = gr.Slider(FIRST_YEAR, LAST_YEAR, value=FIRST_YEAR, step=1, label="Year")
-    # the two charts, each in its own box
+    # both charts together in one box
     with gr.Column(variant="panel"):
         scatter_plot = gr.Plot(first_scatter, show_label=False)
-    with gr.Column(variant="panel"):
         history_plot = gr.Plot(first_history, show_label=False)
     timer = gr.Timer(PLAY_SECONDS, active=False)  # ticks every second while playing, off at start
 

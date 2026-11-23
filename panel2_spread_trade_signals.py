@@ -15,7 +15,7 @@ WINDOW = 60
 ENTRY_Z = 2.0
 STOP_Z = 3.5
 PERIODS = {"1Y": 1, "3Y": 3, "5Y": 5, "10Y": 10, "All": None}
-COLOURS = {"a": "#2a78d6", "fair": "#898781", "long": "#0ca30c", "short": "#d03b3b", "ink": "#52514e"}
+COLOURS = {"a": "#2a78d6", "fair": "#898781", "long": "#0ca30c", "short": "#d03b3b", "ink": "#d9d9d6"}
 
 @lru_cache(maxsize=1)
 def load_prices():
@@ -89,10 +89,10 @@ def make_figure(label, period):
   fig.add_scatter(x=trades.exit, y=sig[a].reindex(trades.exit), mode="markers", name="Exit", text=text, hovertemplate="%{text}<extra></extra>", marker=dict(size=9, color="white", line=dict(width=2, color=COLOURS["ink"])), row=1, col=1)
   fig.add_scatter(x=sig.index, y=sig.z, name="Z-score", showlegend=False, line=dict(color=COLOURS["ink"], width=1.5), hovertemplate="z = %{y:.2f}<extra></extra>", row=2, col=1)
   for y, colour, label, pos in [(ENTRY_Z, COLOURS["short"], f"{a} expensive: short {a}", "top left"), (-ENTRY_Z, COLOURS["long"], f"{a} cheap: buy {a}", "bottom left"), (0, COLOURS["fair"], "", "top left")]:
-    fig.add_hline(y=y, line=dict(color=colour, width=1, dash="dash" if y else "solid"), row=2, col=1, annotation_text=label, annotation_position=pos, annotation_font_color=colour, annotation_bgcolor="rgba(255, 255,255,0.85)")
+    fig.add_hline(y=y, line=dict(color=colour, width=1, dash="dash" if y else "solid"), row=2, col=1, annotation_text=label, annotation_position=pos, annotation_font_color=colour, annotation_bgcolor="rgba(17, 17, 17,0.85)")
   fig.add_bar(x=trades.exit, y=trades.pnl, name="Trade P&L", showlegend=False, customdata=running_total, marker_color=np.where(trades.pnl > 0, COLOURS["long"], COLOURS["short"]), hovertemplate="Trade P&L: %{y:+.1%}<br>Running Total: %{customdata:+.1%}<extra></extra>", row=3, col=1)
   fig.add_hline(y=0, line=dict(color=COLOURS["fair"], width=1), row=3, col=1)
-  fig.update_layout(title=dict(text=title, x=0.01), height=760, template="plotly_white", hovermode="closest", margin=dict(t=90, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
+  fig.update_layout(title=dict(text=title, x=0.01), height=760, template="plotly_dark", hovermode="closest", margin=dict(t=90, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
   fig.update_annotations(selector=dict(xref="paper"), x=0, xanchor="left", font=dict(size=13, color=COLOURS["ink"]))
   fig.update_xaxes(showline=True, mirror=True, linecolor="#d9d9d6")
   fig.update_yaxes(showline=True, mirror=True, linecolor="#d9d9d6")
@@ -124,7 +124,7 @@ def build_panel2():
 if __name__ == "__main__":
   print("Downloading prices...")
   print(f"Got {load_prices().shape[1]} tickers, {len(load_prices())} days. Building first chart... ")
-  with gr.Blocks(title="Panel 2 - Spread & Trade Signals") as demo: 
+  with gr.Blocks(title="Panel 2 - Spread & Trade Signals (Luke Kiely)") as demo: 
     build_panel2()
   demo.launch(theme=gr.themes.Default(primary_hue="blue"))
   

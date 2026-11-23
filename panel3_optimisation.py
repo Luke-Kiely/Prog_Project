@@ -154,26 +154,26 @@ def draw_surface(table, best, sample, title):
     fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=np.zeros(grid.shape), opacity=0.25,
                              colorscale=[[0, "white"], [1, "white"]], showscale=False, hoverinfo="skip"))   # Sharpe = 0 plane
     fig.add_trace(go.Scatter3d(x=[best["entry"]] * 2, y=[best["window"]] * 2, z=[-limit, limit],
-                               mode="lines", line=dict(color="white", width=8),
+                               mode="lines+text", text=["", "Best in-sample"], line=dict(color="white", width=8), line=dict(color="white", width=8),
                                name="Best in-sample setting"))   # vertical line, never hidden
-    fig.update_layout(title=title, height=650, template="plotly_dark", margin=dict(l=0, r=0, t=50, b=0),
-                      scene=dict(xaxis_title="Entry (z-score)", yaxis_title="Lookback (days)",
+    fig.update_layout(title=title, height=650, template="plotly_dark", margin=dict(l=0, r=0, t=70, b=0),
+                      scene=dict(xaxis_title="Entry threshold (sd)", yaxis_title="Lookback window (days)",
                                  zaxis_title="Sharpe ratio", zaxis_tickvals=[-1, 0, 1], zaxis_range=[-limit, limit],
                                  camera=dict(eye=dict(x=1.6, y=-1.6, z=0.9))))
     return fig
 
 
-def make_summary(best, hedge_ratio, luck):
+def make_summary(best, hedge_ratio, luck, split_date):
     """Return a small table with the results for the best in-sample setting."""
     return pd.DataFrame({
-        "Measure": ["Best entry threshold", "Best lookback window", "Hedge ratio",
+        "Measure": ["In-sample ends", "Best entry threshold", "Best lookback window", "Hedge ratio",
                     "Sharpe in-sample", "Sharpe out-of-sample",
                     "Trades in-sample", "Trades out-of-sample",
-                    "Chance luck does as well (out-of-sample)"],
-        "Value": [f"{best['entry']} sd", f"{best['window']:.0f} days", f"{hedge_ratio:.2f}",
+                    "Chance luck does as well (out-of-sample)", "Verdict"],
+        "Value": [f"{split_date:%b %Y}", f"{best['entry']} sd", f"{best['window']:.0f} days", f"{hedge_ratio:.2f}",
                   f"{best['in_sample']:.2f}", f"{best['out_of_sample']:.2f}",
                   f"{best['trades_in']:.0f}", f"{best['trades_out']:.0f}",
-                  f"{luck:.0%}"],
+                  f"{luck:.0%}", "Probably not luck" if luck < 0.05 else "Could be luck"],
     })
 
 
@@ -190,10 +190,10 @@ def update_panel(pair_name, sample, in_sample_pct, cost_bps):
     luck = luck_test(spread, split, best, cost_bps)
 
     change = "falls" if best["out_of_sample"] < best["in_sample"] else "rises"
-    title = (f"{pair_name}: best in-sample Sharpe of {best['in_sample']:.2f} "
-             f"{change} to {best['out_of_sample']:.2f} after {prices.index[split]:%b %Y}")
+    title = (f"<b>{pair_name}</b><br><sup>Best in-sample Sharpe of {best['in_sample']:.2f} "
+             f"{change} to {best['out_of_sample']:.2f} after {prices.index[split]:%b %Y}</sup>")
     fig = draw_surface(table, best, sample, title)
-    return fig, make_summary(best, hedge_ratio, luck)
+    return fig, make_summary(best, hedge_ratio, luck, prices.index[split])
 
 
 # Main body
