@@ -33,6 +33,7 @@ WINDOWS = [10, 20, 40, 60, 120, 250]        # lookback in trading days
 TRADING_DAYS = 252
 MIN_TRADES = 10                             # a best setting needs at least this many trades
 SHARPE_LIMIT = 1.5                          # fixed scale so pairs can be compared
+SHARPE_COLOURS = [[0, "#d03b3b"], [0.5, "#8a919c"], [1, "#2a78d6"]]   # red = losing, grey = flat, blue = winning
 
 
 # Step 1: get the prices
