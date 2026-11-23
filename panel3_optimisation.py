@@ -84,7 +84,7 @@ def run_strategy(spread, window, entry, cost_bps):
     """Return the position held, the daily move in the spread and the trading costs."""
     zscore = (spread - spread.rolling(window).mean()) / spread.rolling(window).std()
     held = get_positions(zscore, entry).shift(1)        # trade the day after the signal
-    move = spread - spread.shift(1)
+    move = spread - spread.shift(1)     # daily change in the spread
     costs = (held - held.shift(1)).abs() * cost_bps / 10000
     return held, move, costs
 

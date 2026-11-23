@@ -229,7 +229,10 @@ def next_year(year: int) -> tuple:
 
 
 # Dashboard layout
-with gr.Blocks(title="Panel 4 - Relationship over time") as demo:
+def build_panel4():
+    """Builds the panel inside whatever gr.Blocks calls it (the group dashboard or below)."""
+    # draw the first pair's charts straight away so the panel isn't empty
+    first_scatter, first_history = make_charts(list(PAIRS)[0], FIRST_YEAR, 60)
     # heading and short explanation at the top of the panel
     gr.Markdown("### Relationship over time\nPress **Play** to step through the years. "
                 "**Beta** = how much stock A moves when stock B moves 1%. "
@@ -247,15 +250,14 @@ with gr.Blocks(title="Panel 4 - Relationship over time") as demo:
     year_slider = gr.Slider(FIRST_YEAR, LAST_YEAR, value=FIRST_YEAR, step=1, label="Year")
     # the two charts, each in its own box
     with gr.Column(variant="panel"):
-        scatter_plot = gr.Plot(show_label=False)
+        scatter_plot = gr.Plot(first_scatter, show_label=False)
     with gr.Column(variant="panel"):
-        history_plot = gr.Plot(show_label=False)
+        history_plot = gr.Plot(first_history, show_label=False)
     timer = gr.Timer(PLAY_SECONDS, active=False)  # ticks every second while playing, off at start
 
     # redraw charts when anything changes
     controls = [pair_dropdown, year_slider, z_slider]
     charts = [scatter_plot, history_plot]
-    demo.load(make_charts, controls, charts)
     pair_dropdown.change(make_charts, controls, charts)
     z_slider.release(make_charts, controls, charts)
     year_slider.change(make_charts, controls, charts)
@@ -267,4 +269,6 @@ with gr.Blocks(title="Panel 4 - Relationship over time") as demo:
 
 
 if __name__ == "__main__":
+    with gr.Blocks(title="Panel 4 - Relationship over time") as demo:
+        build_panel4()
     demo.launch()  # only runs when this file is executed directly
