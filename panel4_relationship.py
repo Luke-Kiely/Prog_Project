@@ -119,4 +119,14 @@ def yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
         rows.append({"Year": year, "Beta": beta, "R-squared": r_squared, "Hover": hover})
     # keep the column names even if no years qualify
     return pd.DataFrame(rows, columns=["Year", "Beta", "R-squared", "Hover"])
+
+
+def style_figure(fig: go.Figure, title: str, subtitle: str, height: int) -> go.Figure:
+    """Applies the same styling to both charts."""
+    fig.update_layout(title=f"{title}<br><sup>{subtitle}</sup>", template="plotly_dark",
+                      height=height, showlegend=False, margin=dict(t=90))  # top room for the title
+    # turn off zoom on both axes
+    fig.update_xaxes(fixedrange=True)
+    fig.update_yaxes(fixedrange=True)
+    return fig
         
