@@ -198,3 +198,10 @@ def make_history(df: pd.DataFrame, year: int) -> go.Figure:
     fig = style_figure(fig, "Beta and R-squared by Year", subtitle, height=400)
     fig.update_layout(showlegend=True)  # show the legend here (it's off by default in style_figure)
     return fig
+
+
+def make_charts(pair_name: str, year: int, z_window: int) -> tuple:
+    """Builds both charts for the current pair, year and z-score window."""
+    # Gradio sliders give decimals so convert to whole numbers
+    df = prepare_pair(pair_name, int(z_window))
+    return make_scatter(df, pair_name, int(year)), make_history(df, int(year))
