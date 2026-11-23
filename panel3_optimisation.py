@@ -163,17 +163,17 @@ def draw_surface(table, best, sample, title):
     return fig
 
 
-def make_summary(best, hedge_ratio, luck):
+def make_summary(best, hedge_ratio, luck, split_date):
     """Return a small table with the results for the best in-sample setting."""
     return pd.DataFrame({
-        "Measure": ["Best entry threshold", "Best lookback window", "Hedge ratio",
+        "Measure": ["In-sample ends", "Best entry threshold", "Best lookback window", "Hedge ratio",
                     "Sharpe in-sample", "Sharpe out-of-sample",
                     "Trades in-sample", "Trades out-of-sample",
-                    "Chance luck does as well (out-of-sample)"],
-        "Value": [f"{best['entry']} sd", f"{best['window']:.0f} days", f"{hedge_ratio:.2f}",
+                    "Chance luck does as well (out-of-sample)", "Verdict"],
+        "Value": [f"{split_date:%b %Y}", f"{best['entry']} sd", f"{best['window']:.0f} days", f"{hedge_ratio:.2f}",
                   f"{best['in_sample']:.2f}", f"{best['out_of_sample']:.2f}",
                   f"{best['trades_in']:.0f}", f"{best['trades_out']:.0f}",
-                  f"{luck:.0%}"],
+                  f"{luck:.0%}", "Probably not luck" if luck < 0.05 else "Could be luck"],
     })
 
 
