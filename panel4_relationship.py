@@ -76,10 +76,14 @@ def prepare_pair(pair_name: str, z_window: int) -> pd.DataFrame:
     # Hedge ratio = slope of A on B over the last year
     # .shift(1) so the hedge ratio only uses past data
     hedge = (log_a.rolling(HEDGE_WINDOW).cov(log_b) / log_b.rolling(HEDGE_WINDOW).var()).shift(1)
-    spread = log_a - hedge * log_b  # the gap between A and the hedged amount of B
-
-    # z-score is how far today's spread is from its recent average, in standard deviations
-    z_score = (spread - spread.rolling(z_window).mean()) / spread.rolling(z_window).std()
+    # z-score is how far today's spread (A minus the hedged amount of B) is from its
+    # recent average, in standard deviations. Today's hedge ratio is used for the whole
+    # window, so a change in the hedge ratio can't look like a price move.
+    mean_a, mean_b = log_a.rolling(z_window).mean(), log_b.rolling(z_window).mean()
+    gap = (log_a - mean_a) - hedge * (log_b - mean_b)  # today's spread minus its average
+    spread_var = (log_a.rolling(z_window).var() + hedge ** 2 * log_b.rolling(z_window).var()
+                  - 2 * hedge * log_a.rolling(z_window).cov(log_b))
+    z_score = gap / np.sqrt(spread_var)
 
     # daily returns and z-score (drops days without a z-score yet)
     df = pd.DataFrame({"ret_a": log_a.diff(), "ret_b": log_b.diff(), "z": z_score}).dropna()
@@ -164,7 +168,8 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
                         # labels at the ends of the colour bar instead of a long title
                         colorbar=dict(title="Spread z-score", thickness=15, len=0.7,
                                       tickvals=[-Z_CAP, 0, Z_CAP],
-                                      ticktext=[f"{stock_a} cheap", "0", f"{stock_a} expensive"]),
+                                      ticktext=[f"-3 ({stock_a} cheap)", "0 (normal)",
+                                                f"+3 ({stock_a} expensive)"]),
                         line=dict(width=0.5, color="grey")),  # outline so pale dots show
         ))
 
