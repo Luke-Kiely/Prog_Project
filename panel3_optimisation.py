@@ -156,8 +156,8 @@ def draw_surface(table, best, sample, title):
     fig.add_trace(go.Scatter3d(x=[best["entry"]] * 2, y=[best["window"]] * 2, z=[-limit, limit],
                                mode="lines+text", text=["", "Best in-sample"], line=dict(color="white", width=8), line=dict(color="white", width=8),
                                name="Best in-sample setting"))   # vertical line, never hidden
-    fig.update_layout(title=title, height=650, template="plotly_dark", margin=dict(l=0, r=0, t=50, b=0),
-                      scene=dict(xaxis_title="Entry (z-score)", yaxis_title="Lookback (days)",
+    fig.update_layout(title=title, height=650, template="plotly_dark", margin=dict(l=0, r=0, t=70, b=0),
+                      scene=dict(xaxis_title="Entry threshold (sd)", yaxis_title="Lookback window (days)",
                                  zaxis_title="Sharpe ratio", zaxis_tickvals=[-1, 0, 1], zaxis_range=[-limit, limit],
                                  camera=dict(eye=dict(x=1.6, y=-1.6, z=0.9))))
     return fig
