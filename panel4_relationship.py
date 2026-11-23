@@ -167,7 +167,7 @@ def make_scatter(df: pd.DataFrame, pair_name: str, year: int) -> go.Figure:
         # regression line across the whole chart
         line_x = np.array(axis_range)  # the two ends of the x-axis
         fig.add_trace(go.Scatter(x=line_x, y=alpha + beta * line_x, mode="lines",
-                                 name="Regression line", line=dict(color="white", width=2)))
+                                 name="Regression line", line=dict(color="black", width=2)))
 
     # axis labels as a percentage with the same range every year
     fig.update_xaxes(title=f"{stock_b} Daily Return", range=axis_range,
