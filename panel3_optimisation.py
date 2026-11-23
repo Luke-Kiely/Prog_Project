@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import yfinance as yf
 
-PRICE_FILE = Path("data") / "prices.csv"
+PRICE_FILE = Path(__file__).parent / "data" / "prices.csv"     # works from any folder
 
 PAIRS = {
     "KO vs PEP": ["KO", "PEP"],
