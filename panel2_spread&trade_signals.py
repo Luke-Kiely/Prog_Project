@@ -9,6 +9,7 @@ import yfinance as yf
 from plotly.subplots import make_subplots
 
 RIVAL_PAIRS = [("KO", "PEP"), ("V", "MA"), ("XOM", "CVX"), ("JPM", "BAC"), ("HD", "LOW"), ("WMT", "COST"), ("MCD", "QSR"), ("UPS", "FDX"), ("NVDA", "AMD"), ("GOOGL", "META")] 
+SECTORS = ["Soft Drinks", "Card Networks", "Oil Companies", "Large Banks", "Home Stores", "Retail", "Fast Food", "Parcel Delivery", "Memory Chips", "Technology"]
 
 WINDOW = 60
 ENTRY_Z = 2.0
@@ -91,17 +92,21 @@ def make_figure(label, period):
   return fig
 
 LABELS = [f"{a} / {b}" for a, b in RIVAL_PAIRS]
+CHOICES = [(f"{label} ({sector})", label) for sector, label in zip(SECTORS, LABELS)]
 
 def pick_period(label, chosen): 
   buttons = [gr.Button(variant="primary" if p == chosen else "secondary") for p in PERIODS]
   return [chosen, make_figure(label, chosen)] + buttons
   
 def build_panel2():
-  pair = gr.Dropdown(LABELS, value=LABELS[0], label="Rival Pair")
-  plot = gr.Plot(make_figure(LABELS[0], "3Y"))
-  period = gr.State("3Y")
   with gr.Row():
-     buttons = [gr.Button(p, size="lg", variant="primary" if p == "3Y" else "secondary") for p in PERIODS]
+    with gr.Column(scale=1, min_width=230):
+      pair=gr.Radio(CHOICES, value=LABELA[0], label="Rival Pair")
+    with gr.Column(scale=5):
+      plot = gr.Plot(make_figure(LABELS[0], "3Y"))
+      period = gr.State("3Y")
+      with gr.Row():
+        buttons = [gr.Button(p, size="lg", variant="primary" if p == "3Y" else "secondary") for p in PERIODS]
   pair.change(make_figure, [pair, period], plot)
   for button in buttons:
     button.click(pick_period, [pair, button], [period, plot] + buttons)
