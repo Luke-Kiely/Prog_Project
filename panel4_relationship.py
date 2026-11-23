@@ -190,14 +190,14 @@ def make_history(df: pd.DataFrame, year: int) -> go.Figure:
     fig.add_trace(go.Scatter(x=summary["Year"], y=summary["Beta"], mode="lines+markers",
                              name="Beta", line=dict(color="orange")))
     # shade the year shown in the top chart
-    fig.add_vrect(x0=year - 0.5, x1=year + 0.5, fillcolor="white", opacity=0.15, line_width=0)
+    fig.add_vrect(x0=year - 0.5, x1=year + 0.5, fillcolor="grey", opacity=0.2, line_width=0)
     # dotted line showing beta across all years to compare each year against
     fig.add_hline(y=beta_all, line_dash="dot", annotation_text=f"All-years beta {beta_all:.2f}")
     # same years on the x-axis for every pair, labelled every 2 years
     fig.update_xaxes(range=[FIRST_YEAR - 0.5, LAST_YEAR + 0.5], dtick=2)
     subtitle = f"Shaded year: {year}. Hover over a bar for that year's numbers."
     fig = style_figure(fig, "Beta and R-squared by Year", subtitle, height=400)
-    fig.update_layout(showlegend=True)  # show the legend here (it's off by default in style_figure)
+    fig.update_layout(showlegend=True)  # show the legend (style_figure turns it off)
     return fig
 
 
