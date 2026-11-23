@@ -85,3 +85,11 @@ def prepare_pair(pair_name: str, z_window: int) -> pd.DataFrame:
     df = pd.DataFrame({"ret_a": log_a.diff(), "ret_b": log_b.diff(), "z": z_score}).dropna()
     df["year"] = df.index.year  # used to split the data by year
     return df
+
+
+def regression(x: pd.Series, y: pd.Series) -> tuple:
+    """Return beta, alpha and R-squared for the line y = alpha + beta * x."""
+    beta = y.cov(x) / x.var()  # slope: how much y moves when x moves
+    alpha = y.mean() - beta * x.mean()  # intercept: y when x = 0
+    r_squared = y.corr(x) ** 2  # share of y's movement explained by x
+    return beta, alpha, r_squared
