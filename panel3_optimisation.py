@@ -50,6 +50,7 @@ def load_prices():
         print("Yahoo Finance unavailable:", e)
         prices = pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
         print("Using the saved copy in", PRICE_FILE)
+    print(f"{len(prices)} trading days, {prices.index[0]:%b %Y} to {prices.index[-1]:%b %Y}")
     return prices
 
 
@@ -148,7 +149,8 @@ def draw_surface(table, best, sample, title):
     fig = go.Figure()
     fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=grid.values, colorscale=SHARPE_COLOURS,
                              contours=dict(x=dict(show=True, color="#111111"), y=dict(show=True, color="#111111")),
-                             cmin=-limit, cmax=limit, colorbar_title="Sharpe"))
+                             cmin=-limit, cmax=limit, colorbar_title="Sharpe",
+                             hovertemplate="Entry %{x} sd<br>Lookback %{y} days<br>Sharpe %{z:.2f}<extra></extra>"))
     fig.add_trace(go.Scatter3d(x=[best["entry"]] * 2, y=[best["window"]] * 2, z=[-limit, limit],
                                mode="lines", line=dict(color="white", width=8),
                                name="Best in-sample setting"))   # vertical line, never hidden
