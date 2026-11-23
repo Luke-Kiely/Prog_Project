@@ -106,7 +106,8 @@ def describe(r_squared: float) -> str:
 
 
 def yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
-    """Builds a table with one row per year: beta, R-squared and hover text for the bottom chart."""
+    """Builds a table with one row per year: beta, R-squared and hover text
+    for the bottom chart."""
     rows = []
     for year, group in df.groupby("year"):  # one group of days per year
         if len(group) < MIN_DAYS:
