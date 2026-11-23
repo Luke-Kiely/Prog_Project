@@ -4,15 +4,18 @@ Tests 36 pairs trading settings on past prices, then checks whether the best one
 still works on later prices. Run it with: python panel3_optimisation.py
 """
 
+import os
 from pathlib import Path
 
 import gradio as gr
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import requests
 import yfinance as yf
 
 PRICE_FILE = Path(__file__).parent / "data" / "prices.csv"     # works from any folder
+VIX_FILE = Path(__file__).parent / "data" / "vix.csv"
 
 PAIRS = {
     "KO vs PEP": ["KO", "PEP"],
@@ -34,6 +37,7 @@ TRADING_DAYS = 252
 MIN_TRADES = 10                             # a best setting needs at least this many trades
 SHARPE_LIMIT = 1.5                          # fixed scale so pairs can be compared
 SHARPE_COLOURS = [[0, "#d03b3b"], [0.5, "#8a919c"], [1, "#2a78d6"]]   # red = losing, grey = flat, blue = winning
+STRESS_LEVEL = 20                           # VIX at or above this = stressed market
 
 
 # Step 1: get the prices
@@ -52,6 +56,27 @@ def load_prices():
         print("Using the saved copy in", PRICE_FILE)
     print(f"{len(prices)} trading days, {prices.index[0]:%b %Y} to {prices.index[-1]:%b %Y}")
     return prices
+
+
+def load_vix():
+    """Download the VIX (the market's "fear index") from the FRED API, or use the saved copy."""
+    try:
+        reply = requests.get("https://api.stlouisfed.org/fred/series/observations", timeout=30,
+                             params={"series_id": "VIXCLS", "api_key": os.environ["FRED_API_KEY"],
+                                     "file_type": "json"})
+        if not reply.ok:
+            raise ValueError(reply.json()["error_message"])
+        data = pd.DataFrame(reply.json()["observations"])
+        vix = pd.to_numeric(data["value"], errors="coerce")      # values arrive as text, "." = missing
+        vix.index = pd.to_datetime(data["date"])
+        vix = vix.rename("VIX").dropna()
+        vix.to_csv(VIX_FILE)                                      # save a copy for next time
+        print("Using live VIX from the FRED API")
+    except Exception as e:
+        print("FRED API unavailable:", e)
+        vix = pd.read_csv(VIX_FILE, index_col=0, parse_dates=True)["VIX"]
+        print("Using the saved copy in", VIX_FILE)
+    return vix
 
 
 # Step 2: the trading strategy
@@ -138,6 +163,14 @@ def luck_test(spread, split, best, cost_bps, n_tries=500):
     return as_good / n_tries
 
 
+def sharpe_by_mood(spread, split, best, cost_bps):
+    """Return the best setting's out-of-sample Sharpe on calm days and on stressed days."""
+    held, move, costs = run_strategy(spread, int(best["window"]), best["entry"], cost_bps)
+    daily_return = (held * move - costs).iloc[split:]
+    stressed = all_vix.reindex(daily_return.index).ffill() >= STRESS_LEVEL
+    return get_sharpe(daily_return[~stressed]), get_sharpe(daily_return[stressed])
+
+
 # Step 4: chart and summary table
 
 def draw_surface(table, best, sample, title):
@@ -163,15 +196,17 @@ def draw_surface(table, best, sample, title):
     return fig
 
 
-def make_summary(best, hedge_ratio, luck, split_date):
+def make_summary(best, hedge_ratio, luck, split_date, calm, stressed):
     """Return a small table with the results for the best in-sample setting."""
     return pd.DataFrame({
         "Measure": ["In-sample ends", "Best entry threshold", "Best lookback window", "Hedge ratio",
                     "Sharpe in-sample", "Sharpe out-of-sample",
+                    f"Sharpe out-of-sample, calm (VIX under {STRESS_LEVEL})", f"Sharpe out-of-sample, stressed (VIX {STRESS_LEVEL}+)",
                     "Trades in-sample", "Trades out-of-sample",
                     "Chance luck does as well (out-of-sample)", "Verdict"],
         "Value": [f"{split_date:%b %Y}", f"{best['entry']} sd", f"{best['window']:.0f} days", f"{hedge_ratio:.2f}",
                   f"{best['in_sample']:.2f}", f"{best['out_of_sample']:.2f}",
+                  f"{calm:.2f}", f"{stressed:.2f}",
                   f"{best['trades_in']:.0f}", f"{best['trades_out']:.0f}",
                   f"{luck:.0%}", "Probably not luck" if luck < 0.05 else "Could be luck"],
     })
@@ -188,17 +223,19 @@ def update_panel(pair_name, sample, in_sample_pct, cost_bps):
         enough_trades = table
     best = enough_trades.loc[enough_trades["in_sample"].idxmax()]
     luck = luck_test(spread, split, best, cost_bps)
+    calm, stressed = sharpe_by_mood(spread, split, best, cost_bps)
 
     change = "falls" if best["out_of_sample"] < best["in_sample"] else "rises"
     title = (f"<b>{pair_name}</b><br><sup>Best in-sample Sharpe of {best['in_sample']:.2f} "
              f"{change} to {best['out_of_sample']:.2f} after {prices.index[split]:%b %Y}</sup>")
     fig = draw_surface(table, best, sample, title)
-    return fig, make_summary(best, hedge_ratio, luck, prices.index[split])
+    return fig, make_summary(best, hedge_ratio, luck, prices.index[split], calm, stressed)
 
 
 # Main body
 
 all_prices = load_prices()
+all_vix = load_vix()
 
 first_fig, first_summary = update_panel("KO vs PEP", "In-sample", 70, 5)   # shown when the page opens
 
@@ -215,7 +252,7 @@ panel3_app = gr.Interface(
     flagging_mode="never",
     clear_btn=None,
     description="Drag to rotate the chart and hover for exact values. White line = best "
-                "in-sample setting. Source: Yahoo Finance via yfinance.",
+                "in-sample setting. Sources: Yahoo Finance via yfinance, VIX from the FRED API.",
 )
 
 
