@@ -8,7 +8,19 @@ from panel4_relationship import build_panel4
 
 TITLE = "Trading the Rival Gap"
 
-OVERVIEW = ".............."
+OVERVIEW = """
+### Are rival stocks genuinely tethered, and is the gap between them a reliable trading signal or a statistical illusion?
+
+We test 10 pairs of rival companies, like Coca-Cola vs PepsiCo and Visa vs Mastercard, using daily prices from 2000 to today from Yahoo Finance.
+
+**Work through the tabs in order:**
+1. **Screener** - which of the 190 possible pairs of our 20 stocks are statistically tethered (cointegrated)?
+2. **Spread & Trade Signals** - when the gap between two rivals stretches, where would a trader buy and sell, and did it pay off?
+3. **Optimisation** - which strategy settings worked best in the past, and do they still work on later data they never saw?
+4. **Relationship** - how closely do the two stocks move together, year by year?
+
+Every chart is interactive: hover for exact numbers and use the controls to change the pair, dates and settings.
+"""
 
 def build_overview():
   gr.Markdown(OVERVIEW)
