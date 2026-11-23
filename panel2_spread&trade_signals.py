@@ -13,6 +13,7 @@ RIVAL_PAIRS = [("KO", "PEP"), ("V", "MA"), ("XOM", "CVX"), ("JPM", "BAC"), ("HD"
 WINDOW = 60
 ENTRY_Z = 2.0
 STOP_Z = 3.5
+PERIODS = {"1Y": 1, "3Y": 3, "5Y": 5, "10Y", 10, "All": None}
 COLOURS = {"a": "#2a78d6", "fair": "#898781", "long": "#0ca30c", "short": "#d03b3b", "ink": "#52514e"}
 
 @lru_cache(maxsize=1)
@@ -50,24 +51,25 @@ def pair_data(a, b):
   sig = build_signals(load_prices(), a, b)
   return sig, find_trades(sig, a, b)
 
-def window(label, year_from, year_to):
+def window(label, period):
   a, b = label.split(" / ")
   sig, trades = pair_data(a, b)
-  year_from, year_to = sorted([int(year_from), int(year_to)])
-  sig = sig.loc[str(year_from):str(year_to)]
+  if PERIODS[period]:
+    sig = sig.loc[sig.index[-1] - pd.DateOffset(years=PERIODS[period]):
   trades = trades[trades.entry.between(sig.index.min(), sig.index.max())]
-  return a, b, sig, trades, year_from, year_to
+  return a, b, sig, trades
 
 def hover_text(t, a, b):
   action = f"Buy {a}, Short {b}" if t.side == 1 else f"Short {a}, Buy {b}"
   return (f"<b>{action}</b><br>Entry: {t.entry:%d %b %Y}<br>" f"Exit: {t.exit:%d %b %Y}{' (stop-loss)' if t.stopped else''}<br>" f"Held: {t.days} days<br><b>P&L: {t.pnl:+.1%}</b>")
                                                                         
 def make_figure(label, year_from, year_to):
-  a, b, sig, trades, year_from, year_to = window(label, year_from, year_to)
+  a, b, sig, trades = window(label, period)
+  dates = f"{sig.index.min():%b %Y} - {sig.index.max():%b %Y}" if len(sig) else "no data"
   if trades.empty:
-    title = f"<b>{a} vs {b}</b> | no trades in year {year_from}-{year_to}"
+    title = f"<b>{a} vs {b}</b> | {dates} | no trades"
   else: 
-    title = (f"<b>{a} vs {b}</b> | {year_from}-{year_to} | {len(trades)} trades | " f"{(trades.pnl > 0).mean():.0%} winners | " f"{(1 + trades.pnl).prod() - 1:+.1%} total return (before costs)")
+    title = (f"<b>{a} vs {b}</b> | {dates} | {len(trades)} trades | " f"{(trades.pnl > 0).mean():.0%} winners | " f"{(1 + trades.pnl).prod() - 1:+.1%} total return (before costs)")
   text = [hover_text(t, a, b) for t in trades.itertuples()]
   is_long = trades.side == 1
   equity_x = [sig.index.min()] + list(trades.exit)+ [sig.index.max()]
@@ -91,23 +93,26 @@ def make_figure(label, year_from, year_to):
 
 LABELS = [f"{a} / {b}" for a, b in RIVAL_PAIRS]
 
+def pick_period(label, chosen): 
+  buttons = [gr.Button(variant="primary" if p == chosen else "secondary") for p in PERIODS]
+  return [chosen, make_figure(label, chosen)] + buttons
+  
 def build_panel2():
-  first, last = load_prices().index[0].year, load_prices().index[-1].year
   pair = gr.Dropdown(LABELS, value=LABELS[0], label="Rival Pair")
-  plot = gr.Plot(make_figure(LABELS[0], last - 2, last))
+  plot = gr.Plot(make_figure(LABELS[0], "3Y"))
+  period = gr.State("3Y")
   with gr.Row():
-    year_from = gr.Slider(first, last, value=last - 2, step=1, label="From (year)")
-    year_to = gr.Slider(first, last, value=last, step=1, label="To (year)")
-  pair.change(make_figure, [pair, year_from, year_to], plot)
-  for slider in (year_from, year_to):
-    slider.release(make_figure, [pair, year_from, year_to], plot)
+     buttons = [gr.Button(p, size="lg", variant="primary" if p == "3Y" else "secondary") for p in PERIODS]
+  pair.change(make_figure, [pair, period], plot)
+  for button in buttons:
+    button.click(pick_period, [pair, button], [period, plot] + buttons)
 
 if __name__ == "__main__":
   print("Downloading prices...")
   print(f"Got {load_prices().shape[1]} tickers, {len(load_prices())} days. Building first chart... ")
   with gr.Blocks(title="Panel 2 - Spread & Trade Signals") as demo: 
     build_panel2()
-  demo.launch()
+  demo.launch(theme=gr.themes.Default(primary_hue="blue"))
   
 
   
