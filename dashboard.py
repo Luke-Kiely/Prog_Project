@@ -7,13 +7,7 @@ from panel2_spread_trade_signals import build_panel2
 from panel3_optimisation import build_panel3
 from panel4_relationship import build_panel4
 
-TITLE = "DO RIVAL STOCKS MAKE GOOD PAIR TRADES?"
-OVERVIEW = "....."
-
-def build_overview():
-  gr.Markdown(OVERVIEW)
-
-PANELS = [("Introduction", build_overview), ("1. Screener", build_panel1), ("2. Spread & Trade Signals", build_panel2), ("3. Optimisation", build_panel3), ("4. Relationship", build_panel4)]
+PANELS = [("1. Screener", build_panel1), ("2. Spread & Trade Signals", build_panel2), ("3. Optimisation", build_panel3), ("4. Relationship", build_panel4)]
 
 def show(chosen):
   sections = [gr.Column(visible=name == chosen) for name, _ in PANELS]
