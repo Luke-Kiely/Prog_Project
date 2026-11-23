@@ -8,7 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import yfinance as yf
 
-PRICE_FILE = Path("data") / "prices.csv"  # run from the project folder
+PRICE_FILE = Path(__file__).parent / "data" / "prices.csv"  # works from any folder
 START = "2000-01-01"  # download start date (one year before FIRST_YEAR for the hedge ratio)
 
 # Each pair ordered [Stock A, Stock B] with Stock A on y-axis and Stock B on x-axis
