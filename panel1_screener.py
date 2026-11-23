@@ -24,9 +24,9 @@ RIVAL_PAIRS = [
 TICKERS = [ticker for pair in RIVAL_PAIRS for ticker in pair]
 
 START = "2000-01-01"
-END = None                                # none up to today                                
-PRICE_CACHE = Path("data") / "prices.csv"
-MIN_SHARED_DAYS = 500                     # ~2 years of trading days- fewer is too little to test
+END = None                                                    # none up to today                                
+PRICE_CACHE = Path(__file__).parent / "data" / "prices.csv"   # data folder next to this file
+MIN_SHARED_DAYS = 500                                         # ~2 years of trading days- fewer is too little to test
 
 def load_prices(tickers=TICKERS, start=START, end=END, cache=PRICE_CACHE):
     """Download the latest prices from Yahoo Finance. If that fails, use the saved CSV."""
