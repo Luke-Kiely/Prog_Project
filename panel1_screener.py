@@ -114,11 +114,31 @@ def make_heatmap(results, cutoff=0.05, half=False):
                           line=dict(color="black", width=2))
     return fig
 
-if __name__ == "__main__":                                              # only runs when run directly
+CACHE = {}                                                      # results already worked out this run
+
+def get_results(first_year=2000, last_year=2026):
+    """Screen all pairs for the chosen years, reusing earlier answers so the sliders stay fast."""
+    if "prices" not in CACHE:
+        CACHE["prices"] = load_prices()                         # download once per run
+    if (first_year, last_year) not in CACHE:
+        prices = CACHE["prices"].loc[str(first_year):str(last_year)]
+        CACHE[(first_year, last_year)] = screen_all_pairs(np.log(prices))
+    return CACHE[(first_year, last_year)]
+
+def panel1(first_year=2000, last_year=2026, alpha=0.05, bonferroni=False, half=False):
+    """Everything the group dashboard needs: the Panel 1 heatmap for these settings."""
+    first_year, last_year = sorted([int(first_year), int(last_year)])
+    results = get_results(first_year, last_year)
+    if results.empty:
+        return go.Figure(layout=dict(title="Not enough data in those years. Pick a longer range."))
+    cutoff = alpha / len(results) if bonferroni else alpha     # Bonferroni: divide by the number of tests
+    return make_heatmap(results, cutoff, half)
+
+if __name__ == "__main__":                                               # only runs when run directly
     prices = load_prices()
     print(f"Prices: {prices.shape[0]} days x {prices.shape[1]} stocks")
     results = screen_all_pairs(np.log(prices))
     # the 10 most tethered of 190 pairs
     print(results.nsmallest(10, "p_value")[["pair", "p_value", "correlation", "half_life"]].round(4))
-    make_heatmap(results).write_html("heatmap.html")                    # open this file to check the heatmap
-    make_heatmap(results, half=True).write_html("heatmap_half.html")    # upper half only
+    panel1().write_html("heatmap.html")                                  # default settings
+    panel1(bonferroni=True, half=True).write_html("heatmap_half.html")   # Bonferroni + half
