@@ -154,7 +154,7 @@ def draw_surface(table, best, sample, title):
     fig.add_trace(go.Surface(x=grid.columns, y=grid.index, z=np.zeros(grid.shape), opacity=0.25,
                              colorscale=[[0, "white"], [1, "white"]], showscale=False, hoverinfo="skip"))   # Sharpe = 0 plane
     fig.add_trace(go.Scatter3d(x=[best["entry"]] * 2, y=[best["window"]] * 2, z=[-limit, limit],
-                               mode="lines", line=dict(color="white", width=8),
+                               mode="lines+text", text=["", "Best in-sample"], line=dict(color="white", width=8), line=dict(color="white", width=8),
                                name="Best in-sample setting"))   # vertical line, never hidden
     fig.update_layout(title=title, height=650, template="plotly_dark", margin=dict(l=0, r=0, t=50, b=0),
                       scene=dict(xaxis_title="Entry (z-score)", yaxis_title="Lookback (days)",
