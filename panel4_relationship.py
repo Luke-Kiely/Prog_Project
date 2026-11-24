@@ -316,12 +316,22 @@ def build_panel4():
     """Builds the panel inside whatever gr.Blocks calls it (the group dashboard or below)."""
     # draw the first pair's charts straight away so the panel isn't empty
     first_scatter, first_history, first_stats = make_charts(list(PAIRS)[0], FIRST_YEAR, 60)
-    # heading and short explanation at the top of the panel
-    gr.Markdown("## Panel 4: Is the link between two rivals stable from year to year?\n"
-                "Press **Play** to step through the years and hover for exact values. "
-                "**Beta** = how much stock A moves when stock B moves 1%. "
-                "**R-squared** = how much of A's movement B explains (0 to 1). "
-                "Source: Yahoo Finance via yfinance.")
+    # heading, the question, and a quick guide to the panel (always visible)
+    gr.Markdown(f"""
+## Panel 4: Is the link between two rivals stable from year to year?
+How closely two rival stocks move together in each year from {FIRST_YEAR} to today.
+Press **▶ Play** to step through the years, and hover over anything for exact values.
+- **Cards:** this year's link in numbers: **beta** (how much A moves when B moves 1%) and
+  **R-squared** (how linked the two are, from 0 to 1).
+- **Top chart:** each dot is one trading day; the white line's slope is this year's beta.
+  Red dots = A unusually expensive compared with B that day, blue = unusually cheap.
+- **Bottom chart:** each blue bar is one year's R-squared; the white line is each year's
+  beta. The big white dot marks the year shown in the top chart.
+
+**How to read it:** if the bars and line stay at a similar level year after year, the pair
+is reliably tethered. If they jump around, the link comes and goes, so a gap between the two
+prices is a weaker trading signal.
+""")
     # choose the pair and the z-score window
     with gr.Row():
         pair_dropdown = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair")
@@ -340,17 +350,21 @@ def build_panel4():
             scatter_plot = gr.Plot(first_scatter, show_label=False)
         with gr.Row(min_height=420):
             history_plot = gr.Plot(first_history, show_label=False)
-    # explanation, data source, method and caveats, folded away until clicked
-    with gr.Accordion("How to read this chart, and the data and method", open=False):
+    # the detail behind the guide above, folded away until clicked
+    with gr.Accordion("More detail: reading the charts, data and method", open=False):
         gr.Markdown(f"""
 **Reading the charts**
-- **Top:** each dot is one trading day in the chosen year: how much stock B moved (across)
-  and stock A moved (up). The white line is that year's regression line; its slope is beta.
-- **Dashed line:** beta = 1, where both stocks move by the same percentage.
-- **Dot colour:** that day's spread z-score. Red = stock A expensive compared with B,
-  blue = cheap. Beyond plus or minus {SIGNAL_Z} counts as a signal day.
-- **Bottom:** R-squared (bars) and beta (white line) for every year, with the chosen year
-  picked out. If both swing a lot from year to year, the pair is not reliably tethered.
+- **Beta:** a beta of 0.85 means stock A moved 0.85% on average for every 1% move in B.
+- **R-squared:** how much of A's daily movement B explains: 0 = no link, 1 = lockstep.
+- **Top chart:** B's daily move across, A's daily move up. The white line is that year's
+  regression line: its slope is beta, and the closer the dots hug it, the higher R-squared.
+  The dashed line is beta = 1, where both stocks move by the same percentage.
+- **Dot colour:** how far apart the two prices were that day compared with normal (the
+  spread z-score). Red = A unusually expensive compared with B, blue = unusually cheap.
+- **Signal days:** days beyond plus or minus {SIGNAL_Z}. **Gaps closed** counts how many of
+  those gaps came back to normal within {CLOSE_DAYS} trading days.
+- **Bottom chart:** blue bars = R-squared and white line = beta for every year, with the
+  chosen year picked out.
 
 **Data**
 - Daily closing prices adjusted for splits and dividends, from Yahoo Finance using the
