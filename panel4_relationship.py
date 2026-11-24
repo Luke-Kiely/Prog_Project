@@ -298,10 +298,11 @@ def build_panel4():
     # draw the first pair's charts straight away so the panel isn't empty
     first_scatter, first_history, first_stats = make_charts(list(PAIRS)[0], FIRST_YEAR, 60)
     # heading and short explanation at the top of the panel
-    gr.Markdown("### Relationship over time\nPress **Play** to step through the years. "
+    gr.Markdown("## Panel 4: Is the link between two rivals stable from year to year?\n"
+                "Press **Play** to step through the years and hover for exact values. "
                 "**Beta** = how much stock A moves when stock B moves 1%. "
                 "**R-squared** = how much of A's movement B explains (0 to 1). "
-                "If both jump around from year to year, the stocks are not tethered.")
+                "Source: Yahoo Finance via yfinance.")
     # choose the pair and the z-score window
     with gr.Row():
         pair_dropdown = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair")
