@@ -9,7 +9,6 @@ import yfinance as yf
 from plotly.subplots import make_subplots
 
 RIVAL_PAIRS = [("KO", "PEP"), ("V", "MA"), ("XOM", "CVX"), ("JPM", "BAC"), ("HD", "LOW"), ("WMT", "COST"), ("MCD", "QSR"), ("UPS", "FDX"), ("NVDA", "AMD"), ("GOOGL", "META")] 
-SECTORS = ["Soft Drinks", "Card Networks", "Oil Companies", "Large Banks", "Home Stores", "Retail", "Fast Food", "Parcel Delivery", "Processors", "Digital Ads"]
 
 WINDOW = 60
 ENTRY_Z = 2.0
@@ -75,9 +74,9 @@ def make_figure(label, period):
   a, b, sig, trades = window(label, period)
   dates = f"{sig.index.min():%b %Y} - {sig.index.max():%b %Y}" if len(sig) else "no data"
   if trades.empty:
-    title = f"<b>{a} vs {b}</b> | {dates} | no trades"
+    title = f"<b>{a} vs {b}</b> | {dates}<br> No Trades in this period"
   else: 
-    title = (f"<b>{a} vs {b}</b> | {dates} | {len(trades)} trades | " f"{(trades.pnl > 0).mean():.0%} winners | " f"{(1 + trades.pnl).prod() - 1:+.1%} total return (before costs)")
+    title = (f"<b>{a} vs {b}</b> | {dates}<br> | {len(trades)} trades | " f"{(trades.pnl > 0).mean():.0%} winners | " f"{(1 + trades.pnl).prod() - 1:+.1%} total return (before costs)")
   text = [hover_text(t, a, b) for t in trades.itertuples()]
   is_long = trades.side == 1
   running_total = (1 + trades.pnl).cumprod() - 1
@@ -92,7 +91,7 @@ def make_figure(label, period):
     fig.add_hline(y=y, line=dict(color=colour, width=1, dash="dash" if y else "solid"), row=2, col=1, annotation_text=label, annotation_position=pos, annotation_font_color=colour, annotation_bgcolor="rgba(17, 17, 17,0.85)")
   fig.add_bar(x=trades.exit, y=trades.pnl, name="Trade P&L", showlegend=False, customdata=running_total, marker_color=np.where(trades.pnl > 0, COLOURS["long"], COLOURS["short"]), hovertemplate="Trade P&L: %{y:+.1%}<br>Running Total: %{customdata:+.1%}<extra></extra>", row=3, col=1)
   fig.add_hline(y=0, line=dict(color=COLOURS["fair"], width=1), row=3, col=1)
-  fig.update_layout(title=dict(text=title, x=0.01), height=760, template="plotly_dark", hovermode="closest", margin=dict(t=90, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
+  fig.update_layout(title=dict(text=title, x=0.01, y=0.97, yanchor="top"), height=760, template="plotly_dark", hovermode="closest", margin=dict(t=110, l=60, r=20, b=40), legend=dict(orientation="h", y=1.02, x=1, xanchor="right", yanchor="bottom", traceorder="normal"))
   fig.update_annotations(selector=dict(xref="paper"), x=0, xanchor="left", font=dict(size=13, color=COLOURS["ink"]))
   fig.update_xaxes(showline=True, mirror=True, linecolor="#d9d9d6")
   fig.update_yaxes(showline=True, mirror=True, linecolor="#d9d9d6")
@@ -102,22 +101,61 @@ def make_figure(label, period):
   return fig
 
 LABELS = [f"{a} / {b}" for a, b in RIVAL_PAIRS]
-CHOICES = [(f"{label} ({sector})", label) for sector, label in zip(SECTORS, LABELS)]
 
 def pick_period(label, chosen): 
   buttons = [gr.Button(variant="primary" if p == chosen else "secondary") for p in PERIODS]
   return [chosen, make_figure(label, chosen)] + buttons
-  
+
+def explain(label):
+  """Plain-English guide to the three charts, written for the selected pair."""
+  a, b = label.split(" / ")
+  return f"""### How to read this panel
+**The idea:** {a} and {b} are rivals, so their prices usually move together. When {a} drifts too far from where {b} says it should be, we bet on the gap closing.
+
+#### 1. Price vs fair value
+- **Blue line:** {a}'s actual price.
+- **Grey dotted line:** {a}'s *fair value*, what {a} "should" cost given {b}'s price. It comes from a rolling {WINDOW}-day regression of log({a}) on log({b}), giving a hedge ratio (β) and an intercept (α). It only uses data up to the previous day, so there is no look-ahead bias.
+- **Shaded area:** the *spread*, how far {a} has drifted from fair value.
+- **▲ green:** {a} is cheap, so buy {a} and short β units of {b}.
+- **▼ red:** {a} is expensive, so short {a} and buy β units of {b}.
+- **○ white:** the trade is closed.
+- **Hover** over any marker for the direction, dates, days held and P&L.
+
+#### 2. Z-score: how stretched is the gap?
+- **z = spread ÷ its typical size** over the last {WINDOW} days, so it measures how *unusual* today's gap is.
+- **Above +{ENTRY_Z:g}** (red dashed): {a} is unusually expensive, which is a short signal.
+- **Below −{ENTRY_Z:g}** (green dashed): {a} is unusually cheap, which is a buy signal.
+- **Back to 0:** the gap has closed, so take profit.
+- **Beyond ±{STOP_Z:g}:** stop-loss. The gap kept widening, so cut the trade, with no new entry until z falls back inside ±{ENTRY_Z:g}.
+
+#### 3. Profit or loss per trade
+- One bar per completed trade, placed at its exit date: **green** is a win, **red** is a loss.
+- Return on both legs combined (gross exposure), **before costs**. Hover over a bar for the running total.
+
+#### Headline
+- The number of trades, % winners and compounded total return for the **selected period**. Trades still open are not counted.
+
+#### Controls
+- Change the pair with the dropdown at the top. The **1Y–All** buttons change the period.
+- Drag to zoom in and double-click to reset. All three charts share one time axis.
+
+#### Caveats
+- Returns ignore commissions, the bid-ask spread and borrowing costs for shorting, and trades are assumed to fill at the closing price.
+- ±{ENTRY_Z:g}, ±{STOP_Z:g} and {WINDOW} days are fixed choices, not optimised. Panel 3 tests settings on unseen data.
+"""
+
 def build_panel2():
   with gr.Row():
-    with gr.Column(scale=1, min_width=230):
-      pair=gr.Radio(CHOICES, value=LABELS[0], label="Rival Pair")
+    pair = gr.Radio(LABELS, value=LABELS[0], visible=False)   # hidden: the dashboard's top dropdown sets the pair
     with gr.Column(scale=5):
-      plot = gr.Plot(make_figure(LABELS[0], "3Y"))
+      plot = gr.Plot(make_figure(LABELS[0], "3Y"), show_label=False)
       period = gr.State("3Y")
       with gr.Row():
-        buttons = [gr.Button(p, size="lg", variant="primary" if p == "3Y" else "secondary") for p in PERIODS]
+        buttons = [gr.Button(p, size="lg", min_width=0, variant="primary" if p == "3Y" else "secondary") for p in PERIODS]
+    with gr.Column(scale=2, min_width=300):
+      guide = gr.Markdown(explain(LABELS[0]), height=815, elem_id="guide")   # scrolls if the text is longer
   pair.change(make_figure, [pair, period], plot)
+  pair.change(explain, pair, guide)
   for button in buttons:
     button.click(pick_period, [pair, button], [period, plot] + buttons)
   return pair                          # so the dashboard can change the pair

@@ -1,7 +1,6 @@
 """ Group Dashboard - Trading the Rival Gap """
 import warnings
 from functools import partial
-
 import gradio as gr
 import plotly.io as pio
 
@@ -17,17 +16,45 @@ PAIRS = p4.PAIRS                         # e.g. {"Coca-Cola vs PepsiCo": ["KO", 
 
 TITLE = "Trading the Rival Gap"
 SUBTITLE = "Can ten rival-stock pairs, from Coke vs Pepsi to Nvidia vs AMD, be traded for profit?"
-OVERVIEW = """Are rival stocks genuinely tethered, and is the gap between them a reliable trading signal or a statistical illusion?
+OVERVIEW = """
+## The question
+Coca-Cola and PepsiCo sell almost the same products to the same customers, so their share prices tend to move together. Every so often, one pulls ahead of the other. **When two rival stocks diverge like this, is the gap a reliable trading signal, or a statistical illusion?**
 
-We test 10 pairs of rival companies, like Coca-Cola vs PepsiCo and Visa vs Mastercard, using daily prices from 2000 to today from Yahoo Finance.
+The strategy we test is *pairs trading*: when the gap stretches, buy the stock that looks cheap, short the one that looks expensive, and profit if the gap closes. Because you hold one of each, the bet is on the gap itself, not on whether the market rises or falls.
 
-**Work through the tabs in order:**
-1. **Screener** - which of the 190 possible pairs of our 20 stocks are statistically tethered (cointegrated)?
-2. **Spread & Trade Signals** - when the gap between two rivals stretches, where would a trader buy and sell, and did it pay off?
-3. **Optimisation** - which strategy settings worked best in the past, and do they still work on later data they never saw?
-4. **Relationship** - how closely do the two stocks move together, year by year?
+We test 10 rival pairs, from Coca-Cola vs PepsiCo to Nvidia vs AMD, using daily closing prices from 2000 to today.
 
-Every chart is interactive: hover for exact numbers and use the controls to change the pair, dates and settings.
+## How to use this site
+- **Pick a pair** in the dropdown under the tabs. It updates panels 2–4 and the previews above.
+- **Work through the tabs in order.** Each panel answers one part of the question and builds on the one before.
+- **Hover** over any chart for exact numbers. **Drag** to zoom in and **double-click** to reset.
+- **Change the settings.** Each panel has its own controls for dates, thresholds and costs. A result you can trust should not flip when the settings change slightly.
+
+## The four panels
+### 1. Screener: are the rivals really tethered?
+This panel tests all 190 possible pairs of our 20 stocks with the Engle-Granger cointegration test. A low p-value means two prices share a long-run anchor, so when they drift apart, they tend to come back together.
+- **Read it:** tethered pairs are highlighted. Hover for details such as the p-value and correlation.
+- **Try:** narrow the years, or turn on the Bonferroni correction. Testing 190 pairs means some will look tethered by pure luck, and the correction raises the bar to allow for that.
+
+### 2. Spread & Trade Signals: where would a trader act, and did it pay?
+This panel shows one stock's price against the *fair value* implied by its rival, estimated with a rolling 60-day regression. Below that, the z-score measures how unusual the gap is, and the bottom chart shows the profit or loss on every trade.
+- **Read it:** ▲ buy and ▼ short markers appear when the z-score passes ±2. White circles mark exits, either when the gap closes or at the ±3.5 stop-loss. The guide beside the chart explains each part.
+- **Try:** switch between 1Y and All. A pair that looks profitable recently may not be over 20 years.
+
+### 3. Optimisation: do the best settings survive new data?
+This panel tests every combination of entry threshold and lookback window, after trading costs. It plots the Sharpe ratio (return per unit of risk) as a 3D surface.
+- **Read it:** the line marks the best setting found on the earlier, *in-sample* data. Switch to *Out-of-sample* to see how that same setting performed on later data it never saw. The table includes a luck test: how often chance alone does as well.
+- **Try:** raise the trading cost. If the peak collapses, the edge was thinner than it looked.
+
+### 4. Relationship: is the link stable over time?
+- **Top chart:** each dot is one trading day's returns for the two stocks in the selected year, coloured by the spread z-score, with that year's regression line.
+- **Bottom chart:** beta (how much one stock moves per 1% move in the other) and R² (how much of its movement the rival explains), year by year.
+- **Try:** slide through the years. A falling R² or a drifting beta means the tether is weakening, and signals that worked in earlier years may no longer apply.
+
+## Reading the results honestly
+- Panel 2's returns are before trading costs. Panel 3 includes them.
+- The data only covers companies that still exist today (survivorship bias), so results may flatter the strategy.
+- A gap that looks like a signal for one pair or one period can still be noise. The strongest conclusions are the ones that hold up across all four panels.
 """
 
 THEME = gr.themes.Base(primary_hue="indigo", neutral_hue="zinc", radius_size="lg",
@@ -53,8 +80,9 @@ CSS = """
 .tile:hover {border-color: #6366f1; box-shadow: 0 0 24px rgba(99,102,241,.25);}
 #source {text-align: center; color: #52525b; font-size: .85em;}
 footer {display: none !important;}
+#guide {border: 1px solid #27272a; border-radius: 16px; padding: 4px 16px; background: #111111; font-size: .9em;}
+#guide h3 {margin-top: 6px;}
 """
-
 
 # One preview tile per panel: (tab name, one-line caption, function that draws that panel's chart for a pair)
 PREVIEWS = [("1. Screener", "Which of the 190 pairs are tethered?", lambda name: p1.panel1()),
@@ -65,7 +93,6 @@ PREVIEWS = [("1. Screener", "Which of the 190 pairs are tethered?", lambda name:
             ("4. Relationship", "How closely the rivals move, year by year",
              lambda name: p4.make_charts(name, p4.LAST_YEAR, 60)[1])]
 TILES = []                                   # the four preview charts, so the top dropdown can redraw them
-
 
 def thumbnail(fig):
   """Strip a full-size chart down to a clean preview: no titles, labels, legends or colour bars."""
@@ -78,11 +105,9 @@ def thumbnail(fig):
       trace.showscale = False
   return fig
 
-
 def draw_tiles(name):
   """Redraw all four preview tiles for the chosen pair."""
   return [thumbnail(make(name)) for _, _, make in PREVIEWS]
-
 
 def build_overview():
   """Introduction page: a 2 x 2 grid of panel previews, then the written overview."""
@@ -97,23 +122,19 @@ def build_overview():
   gr.Markdown(OVERVIEW)
   return links
 
-
 PANELS = [("Introduction", build_overview), ("1. Screener", p1.build_panel1), ("2. Spread & Trade Signals", p2.build_panel2),
           ("3. Optimisation", p3.build_panel3), ("4. Relationship", p4.build_panel4)]
-
 
 def pick_pair(name):
   """Turn one pair name into the name each panel uses, e.g. KO / PEP, KO vs PEP, Coca-Cola vs PepsiCo."""
   a, b = PAIRS[name]
   return f"{a} / {b}", f"{a} vs {b}", name
 
-
 def show(chosen):
   """Show the chosen page, hide the others, and highlight its button."""
   sections = [gr.Column(visible=name == chosen) for name, _ in PANELS]
   buttons = [gr.Button(variant="primary" if name == chosen else "secondary") for name, _ in PANELS]
   return sections + buttons
-
 
 with gr.Blocks(title=TITLE) as demo:
   gr.HTML(f"<div id='header'><div class='kicker'>Pairs trading study · ten rival pairs · 2000 to today</div>"

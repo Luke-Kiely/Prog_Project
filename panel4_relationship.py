@@ -33,6 +33,8 @@ Z_CAP = 3  # colour scale runs from -3 to +3
 MIN_DAYS = 20  # a year needs at least this many trading days to be used
 FIRST_YEAR = 2001  # starts at 2001 as hedge ratio needs a full year of data to start
 PLAY_SECONDS = 1.0  # seconds per year while playing
+CLOSE_DAYS = 20  # trading days a signal's gap is given to close (about a month)
+CLOSE_Z = 0.5  # the gap counts as closed once it is back within 0.5 of its average
 # look of each headline-number card above the charts
 CARD = "flex:1; background:#1a1d23; border-radius:10px; padding:12px 16px; color:#e6e6e6"
 
@@ -87,8 +89,19 @@ def prepare_pair(pair_name: str, z_window: int) -> pd.DataFrame:
                   - 2 * hedge * log_a.rolling(z_window).cov(log_b))
     z_score = gap / np.sqrt(spread_var)
 
+    # for each signal day, did the gap close within CLOSE_DAYS? That day's hedge ratio,
+    # average and standard deviation are kept fixed, so only later prices can close it
+    closed = pd.Series(False, index=z_score.index)
+    for day in z_score.index[z_score.abs() >= SIGNAL_Z]:
+        later_a = log_a.loc[day:].iloc[1:CLOSE_DAYS + 1]  # the next CLOSE_DAYS days
+        later_b = log_b.loc[day:].iloc[1:CLOSE_DAYS + 1]
+        later_gap = (later_a - mean_a[day]) - hedge[day] * (later_b - mean_b[day])
+        later_z = later_gap / np.sqrt(spread_var[day]) * np.sign(z_score[day])
+        closed[day] = (later_z <= CLOSE_Z).any()  # back near (or past) the average
+
     # daily returns and z-score (drops days without a z-score yet)
     df = pd.DataFrame({"ret_a": log_a.diff(), "ret_b": log_b.diff(), "z": z_score}).dropna()
+    df["closed"] = closed  # True on signal days whose gap closed
     df["year"] = df.index.year  # used to split the data by year
     return df
 
@@ -120,9 +133,11 @@ def yearly_summary(df: pd.DataFrame) -> pd.DataFrame:
             continue  # skip years with too few days
         beta, _, r_squared = regression(group["ret_b"], group["ret_a"])  # _ skips alpha
         signal_days = (group["z"].abs() >= SIGNAL_Z).sum()  # days beyond signal threshold
+        closed = group["closed"].sum()  # signal days whose gap closed
         # text shown when hovering over this year's bar
         hover = (f"{year}<br>Beta {beta:.2f}<br>R-squared {r_squared:.2f}<br>"
-                 f"{describe(r_squared).title()}<br>Signal days {signal_days} of {len(group)}")
+                 f"{describe(r_squared).title()}<br>Signal days {signal_days} of {len(group)}"
+                 f"<br>Gaps that closed {closed} of {signal_days}")
         rows.append({"Year": year, "Beta": beta, "R-squared": r_squared, "Hover": hover})
     # keep the column names even if no years qualify
     return pd.DataFrame(rows, columns=["Year", "Beta", "R-squared", "Hover"])
@@ -244,8 +259,10 @@ def make_stats(df: pd.DataFrame, year: int) -> str:
         return "<p>No data for this year.</p>"
     beta, _, r_squared = regression(this_year["ret_b"], this_year["ret_a"])
     signal_days = (this_year["z"].abs() >= SIGNAL_Z).sum()  # days beyond signal threshold
+    closed = this_year["closed"].sum()  # signal days whose gap closed
     stats = [("Beta", f"{beta:.2f}"), ("R-squared", f"{r_squared:.2f}"),
              ("Signal days", f"{signal_days} of {len(this_year)}"),
+             (f"Gaps closed in {CLOSE_DAYS} days", f"{closed} of {signal_days}"),
              ("Relationship", describe(r_squared).title())]
     # one card per number: small grey name on top, big bold value underneath
     cards = "".join(f"<div style='{CARD}'><div style='color:#a0a4ab; font-size:13px'>{name}</div>"
@@ -258,7 +275,9 @@ def make_stats(df: pd.DataFrame, year: int) -> str:
                f"{summary['Beta'].max():.2f} and R-squared was above 0.5 in "
                f"{(summary['R-squared'] >= 0.5).sum()} of them, so overall the pair is "
                f"<b>{describe(summary['R-squared'].median())}</b>. {year} ranks "
-               f"#{rank} of {len(summary)} for how tightly the two moved together.")
+               f"#{rank} of {len(summary)} for how tightly the two moved together. "
+               f"Over all years, {df['closed'].sum() / (df['z'].abs() >= SIGNAL_Z).sum():.0%} "
+               f"of signal gaps closed within {CLOSE_DAYS} trading days.")
     return (f"<div style='display:flex; gap:12px'>{cards}</div>"
             f"<p style='margin:14px 4px 0; font-size:15px; color:#e6e6e6'>{verdict}</p>")
 
@@ -297,11 +316,22 @@ def build_panel4():
     """Builds the panel inside whatever gr.Blocks calls it (the group dashboard or below)."""
     # draw the first pair's charts straight away so the panel isn't empty
     first_scatter, first_history, first_stats = make_charts(list(PAIRS)[0], FIRST_YEAR, 60)
-    # heading and short explanation at the top of the panel
-    gr.Markdown("### Relationship over time\nPress **Play** to step through the years. "
-                "**Beta** = how much stock A moves when stock B moves 1%. "
-                "**R-squared** = how much of A's movement B explains (0 to 1). "
-                "If both jump around from year to year, the stocks are not tethered.")
+    # heading, the question, and a quick guide to the panel (always visible)
+    gr.Markdown(f"""
+## Panel 4: Is the link between two rivals stable from year to year?
+How closely two rival stocks move together in each year from {FIRST_YEAR} to today.
+Press **▶ Play** to step through the years, and hover over anything for exact values.
+- **Cards:** this year's link in numbers: **beta** (how much A moves when B moves 1%) and
+  **R-squared** (how linked the two are, from 0 to 1).
+- **Top chart:** each dot is one trading day; the white line's slope is this year's beta.
+  Red dots = A unusually expensive compared with B that day, blue = unusually cheap.
+- **Bottom chart:** each blue bar is one year's R-squared; the white line is each year's
+  beta. The big white dot marks the year shown in the top chart.
+
+**How to read it:** if the bars and line stay at a similar level year after year, the pair
+is reliably tethered. If they jump around, the link comes and goes, so a gap between the two
+prices is a weaker trading signal.
+""")
     # choose the pair and the z-score window
     with gr.Row():
         pair_dropdown = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair")
@@ -320,17 +350,21 @@ def build_panel4():
             scatter_plot = gr.Plot(first_scatter, show_label=False)
         with gr.Row(min_height=420):
             history_plot = gr.Plot(first_history, show_label=False)
-    # explanation, data source, method and caveats, folded away until clicked
-    with gr.Accordion("How to read this chart, and the data and method", open=False):
+    # the detail behind the guide above, folded away until clicked
+    with gr.Accordion("More detail: reading the charts, data and method", open=False):
         gr.Markdown(f"""
 **Reading the charts**
-- **Top:** each dot is one trading day in the chosen year: how much stock B moved (across)
-  and stock A moved (up). The white line is that year's regression line; its slope is beta.
-- **Dashed line:** beta = 1, where both stocks move by the same percentage.
-- **Dot colour:** that day's spread z-score. Red = stock A expensive compared with B,
-  blue = cheap. Beyond plus or minus {SIGNAL_Z} counts as a signal day.
-- **Bottom:** R-squared (bars) and beta (white line) for every year, with the chosen year
-  picked out. If both swing a lot from year to year, the pair is not reliably tethered.
+- **Beta:** a beta of 0.85 means stock A moved 0.85% on average for every 1% move in B.
+- **R-squared:** how much of A's daily movement B explains: 0 = no link, 1 = lockstep.
+- **Top chart:** B's daily move across, A's daily move up. The white line is that year's
+  regression line: its slope is beta, and the closer the dots hug it, the higher R-squared.
+  The dashed line is beta = 1, where both stocks move by the same percentage.
+- **Dot colour:** how far apart the two prices were that day compared with normal (the
+  spread z-score). Red = A unusually expensive compared with B, blue = unusually cheap.
+- **Signal days:** days beyond plus or minus {SIGNAL_Z}. **Gaps closed** counts how many of
+  those gaps came back to normal within {CLOSE_DAYS} trading days.
+- **Bottom chart:** blue bars = R-squared and white line = beta for every year, with the
+  chosen year picked out.
 
 **Data**
 - Daily closing prices adjusted for splits and dividends, from Yahoo Finance using the
@@ -347,8 +381,10 @@ def build_panel4():
 - Years with fewer than {MIN_DAYS} trading days are left out.
 
 **Caveats**
-- A signal day is not a trade: this panel does not test whether the gap closed or made
-  money (Panels 2 and 3 do).
+- **Gaps closed:** for each signal day, whether the spread came back within {CLOSE_Z} of
+  its average in the next {CLOSE_DAYS} trading days, keeping that day's hedge ratio fixed.
+  It shows whether the gap tends to close, not whether a trade would have made money
+  after costs (Panels 2 and 3 look at trading).
 - Beta and R-squared measure how the stocks move day to day, not whether their prices
   stay together in the long run (Panel 1's cointegration test).
 """)
