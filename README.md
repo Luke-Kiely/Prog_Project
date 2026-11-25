@@ -28,7 +28,7 @@ The dashboard opens in your browser automatically. If it doesn't, open the addre
 ## Project structure
 | File | What it does | Author |
 |---|---|---|
-| dashboard.py | Combines the four panels into one app | Student |
+| dashboard.py | Combines the four panels into one app | ALL |
 | panel1_screener.py | Cointegration screener for all 190 pairs | Eoin Hannon |
 | panel2_spread_trade_signals.py | Fair value, z-score signals and trade P&L | Luke Kiely |
 | panel3_optimisation.py | Strategy settings tested in and out of sample | Mathew Hirsch |
