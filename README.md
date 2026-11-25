@@ -50,7 +50,7 @@ Testing all 190 pairs, rather than only our 10 rival pairs, is deliberate: the 1
 
 ## Panel 2: Spread & Trade Signals — *When rivals diverge, where would a trader act, and did it pay?*
 
-**Author:** [Your full name] · **File:** `panel2_spread_trade_signals.py`
+**Author:** Luke Kiely · **File:** `panel2_spread_trade_signals.py`
 
 ### Purpose
 Panel 1 asks whether rival stocks are tethered. Panel 2 asks what happens if you actually trade on that assumption. For each rival pair, it estimates a "fair value" for one stock based on its rival's price. It then flags when the gap between the two becomes unusually wide, and tracks the profit or loss of every trade a simple pairs strategy would have made.
