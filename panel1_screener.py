@@ -152,7 +152,12 @@ def panel1(first_year=2000, last_year=2026, alpha=0.05, bonferroni=False, view="
 
 def build_panel1():
     """Panel 1 for the dashboard: the heatmap plus its controls."""
-    gr.Markdown("Hover over a square for its numbers.")
+    with gr.Accordion("How to read the heatmap", open=False):
+        gr.Markdown("Each square compares two stocks, and the 10 rival pairs have black outlines, with the chosen pair in red. "
+                    "The top-right half shows the cointegration p-value: darker blue means stronger evidence the two prices are tethered. "
+                    "A white dot marks a pair whose p-value is below the significance level you choose. "
+                    "The bottom-left half shows the correlation of daily returns: red means they move together, blue means opposite. "
+                    "A pair can be strongly correlated without being tethered, which is why both halves are shown.")
     with gr.Row():
         first_year = gr.Slider(2000, 2026, value=2000, step=1, label="From (year)", scale=2)
         last_year = gr.Slider(2000, 2026, value=2026, step=1, label="To (year)", scale=2)
