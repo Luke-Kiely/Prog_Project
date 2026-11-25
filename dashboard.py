@@ -89,7 +89,7 @@ PREVIEWS = [("1. Screener", "Which of the 190 pairs are tethered?", lambda name:
             ("2. Spread & Trade Signals", "Where a trader would buy and sell",
              lambda name: p2.make_figure(pick_pair(name)[0], "3Y")),
             ("3. Optimisation", "Do the best settings survive new data?",
-             lambda name: p3.update_panel(pick_pair(name)[1], "In-sample", 70, 5)[0]),
+             lambda name: p3.update_panel(pick_pair(name)[2], "In-sample", 70, 5)[0]),
             ("4. Relationship", "How closely the rivals move, year by year",
              lambda name: p4.make_charts(name, p4.LAST_YEAR, 60)[1])]
 TILES = []                                   # the four preview charts, so the top dropdown can redraw them
@@ -128,7 +128,7 @@ PANELS = [("Introduction", build_overview), ("1. Screener", p1.build_panel1), ("
 def pick_pair(name):
   """Turn one pair name into the name each panel uses, e.g. KO / PEP, KO vs PEP, Coca-Cola vs PepsiCo."""
   a, b = PAIRS[name]
-  return f"{a} / {b}", f"{a} vs {b}", name
+  return f"{a} / {b}", f"{a} / {b}", f"{a} vs {b}", name
 
 def show(chosen):
   """Show the chosen page, hide the others, and highlight its button."""
