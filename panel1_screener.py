@@ -152,7 +152,7 @@ def panel1(first_year=2000, last_year=2026, alpha=0.05, bonferroni=False, view="
 
 def build_panel1():
     """Panel 1 for the dashboard: the heatmap plus its controls."""
-    gr.Markdown("Hover over a square for its numbers. Changing the years re-runs all 190 tests (about 15 seconds).")
+    gr.Markdown("Hover over a square for its numbers.")
     with gr.Row():
         first_year = gr.Slider(2000, 2026, value=2000, step=1, label="From (year)", scale=2)
         last_year = gr.Slider(2000, 2026, value=2026, step=1, label="To (year)", scale=2)
