@@ -125,7 +125,7 @@ def make_heatmap(results, cutoff=0.05, view="Both", selected=None):
     if selected:                                                # outline the chosen pair in red
         stock_a, stock_b = selected.split(" / ")
         i, j = TICKERS.index(stock_a), TICKERS.index(stock_b)
-        for r, c in [(i, j), (j, i)]:
+        for r, c in {"Both": [(i, j), (j, i)], "Tethered": [(i, j)], "Correlated": [(j, i)]}[view]:
             fig.add_shape(type="rect", x0=c - 0.5, x1=c + 0.5, y0=r - 0.5, y1=r + 0.5,
                           line=dict(color="red", width=4))      
     return fig
