@@ -72,3 +72,17 @@ For each pair and each year from 2001, the panel regresses one stock's daily ret
 - Press **▶ Play** to step through the years, or drag the **Year** slider. **⏸ Pause** stops it.
 - Hover over any dot for its date and both stocks' moves, or over any bar for that year's numbers.
 - **More detail** at the bottom of the panel explains the charts, data and method.
+
+
+## Conclusion — *Is the gap between rivals a reliable signal, or a statistical illusion?*
+
+**For a simple pairs strategy, mostly an illusion.** Some rivals clearly move together, but the gap between them is not a dependable trading signal.
+
+- **Rivals are no more tethered than random pairs** *(Panel 1, all years, 5% level).* Only 3 of our 10 rival pairs pass the cointegration test, about the same rate as the 180 unrelated pairs (26%), and none survive the Bonferroni correction.
+- **Signals can look profitable on paper** *(Panel 2, "All" period).* Before trading costs, adding up every trade's return gives a positive total for 6 of the 10 pairs, with 52–68% of trades winning, but large losses on pairs like Nvidia/AMD show what happens when the link breaks.
+- **The best settings don't survive new data** *(Panel 3, default 70% in-sample and 5 basis point cost).* The best in-sample setting's Sharpe ratio fell out-of-sample for 9 of the 10 pairs, and none passed the luck test.
+- **The link itself comes and goes** *(Panel 4).* How closely rivals move together changes a lot from year to year and is strongest in market crises, when most stocks move together anyway. Only 11–23% of unusually wide gaps closed within a month.
+
+Rival stocks do share a relationship, but it is not stable enough, and the gaps do not close reliably enough, for a simple pairs strategy to make money after costs. We tested one simple strategy on ten pairs; more advanced approaches, such as combining several signals or adjusting for moves in the overall market, might do better.
+
+*All figures use data up to November 2026.*
