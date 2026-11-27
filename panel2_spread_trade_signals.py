@@ -1,4 +1,4 @@
-"""Panel 2 - Spread & Trade Signals. Top: A's price vs the fair value implied by B. It marks the trades. Bottom: z-score of the gap"""
+"""Panel 2 - Spread & Trade Signals. Top: A's price vs the fair value implied by B. It marks the trades. Middle: z-score of the gap. Bottom: P&L on each trade. The three charts share one time axis. The panel also has a plain-English guide to the charts and controls."""
 
 from functools import lru_cache
 from pathlib import Path
