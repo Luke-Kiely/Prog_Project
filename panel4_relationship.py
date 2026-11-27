@@ -40,20 +40,17 @@ CARD = "flex:1; background:#1a1d23; border-radius:10px; padding:12px 16px; color
 
 
 def load_prices() -> pd.DataFrame:
-    """Gets the daily closing prices for all tickers, either from a saved CSV or by downloading."""
-    if PRICE_FILE.exists():
-        print("Using saved copy:", PRICE_FILE)
-        return pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
+    """Downloads the latest prices from Yahoo Finance, or uses the saved CSV if that fails."""
     try:
         prices = yf.download(TICKERS, start=START, auto_adjust=True, progress=False)["Close"]
+        missing = [ticker for ticker in TICKERS if prices[ticker].isna().all()]
+        if missing:
+            raise ValueError(f"no prices for {missing}")
+        print("Using live prices from Yahoo Finance")
+        return prices
     except Exception as err:
-        raise RuntimeError(f"Could not download prices ({err}).") from err
-    prices = prices.dropna(axis=1, how="all")  # drops tickers that failed to download
-    if len(prices.columns) == len(TICKERS):  # only saves if every ticker is downloaded
-        PRICE_FILE.parent.mkdir(exist_ok=True)
-        prices.to_csv(PRICE_FILE)
-        print("Downloaded once and saved:", PRICE_FILE)
-    return prices
+        print("Yahoo Finance unavailable, using saved copy:", err)
+        return pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
 
 
 # Load the data
@@ -404,4 +401,3 @@ if __name__ == "__main__":
     with gr.Blocks(title="Panel 4 - Relationship over time") as demo:
         build_panel4()
     demo.launch()  # only runs when this file is executed directly
-    
