@@ -56,3 +56,19 @@ Testing all 190 pairs, rather than only our 10 rival pairs, is deliberate: the 1
 Panel 1 asks whether rival stocks are tethered. Panel 2 asks what happens if you actually trade on that assumption. For each rival pair, it estimates a "fair value" for one stock based on its rival's price. It then flags when the gap between the two becomes unusually wide, and tracks the profit or loss of every trade a simple pairs strategy would have made.
 
 The fair value comes from a rolling 60-day regression of log prices, using only data available up to the previous day, rather than simply rebasing both stocks to 100. This is deliberate: rivals rarely move one-for-one, and the regression estimates how they actually move together, so signals aren't triggered by normal differences between the two companies. The gap is then converted into a z-score so that "unusually wide" means the same thing across every pair and time period. Trades open at ±2 and close when the gap returns to zero, or at a ±3.5 stop-loss. Results are shown before trading costs, which Panel 3 then accounts for.
+
+
+## Panel 4: Relationship over Time — *Is the link between two rivals stable from year to year?*
+
+**Author:** Charles Graham · **File:** `panel4_relationship.py`
+
+### Purpose
+Panel 1 tests whether each pair is tethered over the whole period. Panel 4 asks whether that link actually holds year by year. A pair that moves closely together in some years but drifts apart in others is risky to trade, even if it passes a full-period test.
+
+For each pair and each year from 2001, the panel regresses one stock's daily returns on its rival's. **Beta** shows how much stock A moves when stock B moves 1%, and **R-squared** shows how much of A's movement B explains (0 to 1). The top chart plots every trading day in the chosen year with that year's regression line; the bottom chart shows beta and R-squared for every year, so changes in the relationship stand out.
+
+### How to use it
+- Pick a pair with the **Rival pair** selector at the top of the dashboard.
+- Press **▶ Play** to step through the years, or drag the **Year** slider. **⏸ Pause** stops it.
+- Hover over any dot for its date and both stocks' moves, or over any bar for that year's numbers.
+- **More detail** at the bottom of the panel explains the charts, data and method.
