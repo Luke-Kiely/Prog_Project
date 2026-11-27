@@ -1,4 +1,4 @@
-# Group Name: LEMC Analysis
+# Group 1
 - Name: Luke Kiely
 - Name: Eoin Hannon
 - Name: Mathew Hirsch
