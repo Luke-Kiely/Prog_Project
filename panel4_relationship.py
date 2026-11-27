@@ -404,3 +404,4 @@ if __name__ == "__main__":
     with gr.Blocks(title="Panel 4 - Relationship over time") as demo:
         build_panel4()
     demo.launch()  # only runs when this file is executed directly
+    
