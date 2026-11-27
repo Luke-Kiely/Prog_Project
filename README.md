@@ -34,9 +34,11 @@ The dashboard opens in your browser automatically. If it doesn't, open the addre
 | panel3_optimisation.py | Strategy settings tested in and out of sample | Mathew Hirsch |
 | panel4_relationship.py | Beta and R² of each pair over time | Charles Graham |
 | data/prices.csv | Saved daily closing prices (fallback) | ALL |
+| data/vix.csv | Saved daily VIX from the FRED API (fallback) | Mathew Hirsch |
 
 ## Data
 Daily closing prices (adjusted) from Yahoo Finance via the yfinance library, 2000 to today.
+Daily VIX (the market's "fear index") from the FRED API, series VIXCLS, used in Panel 3.
 
 ## Panel 1: Rival Screener — *Which of the 190 pairs are genuinely tethered?*
 
@@ -109,9 +111,9 @@ For each pair and each year from 2001, the panel regresses one stock's daily ret
 
 - **Rivals are no more tethered than random pairs** *(Panel 1, all years, 5% level).* Only 3 of our 10 rival pairs pass the cointegration test, about the same rate as the 180 unrelated pairs (26%), and none survive the Bonferroni correction.
 - **Signals can look profitable on paper** *(Panel 2, "All" period).* Before trading costs, adding up every trade's return gives a positive total for 6 of the 10 pairs, with 52–68% of trades winning, but large losses on pairs like Nvidia/AMD show what happens when the link breaks.
-- **The best settings don't survive new data** *(Panel 3, default 70% in-sample and 5 basis point cost).* The best in-sample setting's Sharpe ratio fell out-of-sample for 9 of the 10 pairs, and none passed the luck test.
+- **The best settings don't survive new data** *(Panel 3, default 70% in-sample and 5 basis point cost).* The best in-sample setting's Sharpe ratio fell out-of-sample for 9 of the 10 pairs, and only Walmart/Costco passed the luck test.
 - **The link itself comes and goes** *(Panel 4).* How closely rivals move together changes a lot from year to year and is strongest in market crises, when most stocks move together anyway. Only 11–23% of unusually wide gaps closed within a month.
 
 Rival stocks do share a relationship, but it is not stable enough, and the gaps do not close reliably enough, for a simple pairs strategy to make money after costs. We tested one simple strategy on ten pairs; more advanced approaches, such as combining several signals or adjusting for moves in the overall market, might do better.
 
-*All figures use data up to November 2026.*
+*All figures use data up to 20 November 2026. The dashboard uses live prices, so its numbers may differ slightly.*
