@@ -57,6 +57,28 @@ Panel 1 asks whether rival stocks are tethered. Panel 2 asks what happens if you
 
 The fair value comes from a rolling 60-day regression of log prices, using only data available up to the previous day, rather than simply rebasing both stocks to 100. This is deliberate: rivals rarely move one-for-one, and the regression estimates how they actually move together, so signals aren't triggered by normal differences between the two companies. The gap is then converted into a z-score so that "unusually wide" means the same thing across every pair and time period. Trades open at ±2 and close when the gap returns to zero, or at a ±3.5 stop-loss. Results are shown before trading costs, which Panel 3 then accounts for.
 
+## Panel 3: Strategy Optimisation - *Does the best setting still work on new data?*
+
+**Author:** Mathew Hirsch · **File:** `panel3_optimisation.py`
+
+### Purpose
+Panel 2 trades one fixed rule. Panel 3 asks whether a better rule can be found, and whether it still works afterwards. For each rival pair it tests 36 settings of a simple pairs strategy: 6 entry thresholds (how far the gap must stretch before trading, from 0.5 to 3 standard deviations) and 6 lookback windows (how many past days count as "normal", from 10 to 250). It picks the setting with the highest Sharpe ratio on the first part of the data (in-sample, 70% of days by default), then runs that exact setting on the later days it has never seen (out-of-sample).
+
+This is because if you test enough settings on the same data, one will almost always look good by luck, so the only fair test is on new data. To keep the test honest, the hedge ratio is fitted on in-sample days only, trades happen the day after a signal, every trade pays a cost, and a setting needs at least 10 in-sample trades to be picked. Two extra checks sit on top: a luck test, which flips the sign of each out-of-sample day's return 500 times (under 5% means probably not luck), and a split between calm and stressed markets using the VIX from the FRED API (a VIX of 20 or more counts as stressed).
+
+### How to use it
+- Pick a pair with the **Rival pair** selector at the top of the dashboard.
+- Switch **Show** between **In-sample** and **Out-of-sample** to see the same 36 settings on each period.
+- Move the **In-sample period** slider (50 to 90% of days) or the **Trading cost** slider (0 to 20 basis points per trade). The chart and table update automatically.
+- Drag the 3D chart to rotate it and hover for each setting's exact Sharpe ratio. The white line marks the best in-sample setting, and the grey sheet is a Sharpe ratio of zero: blue above it made money, red below it lost money.
+- The table shows the best setting, its Sharpe ratio in and out of sample, calm and stressed results, trade counts and the luck test.
+
+### VIX data (FRED API key)
+The VIX comes from the FRED API, which needs a free key from fred.stlouisfed.org. Set it before starting the dashboard:
+- macOS / Linux: `export FRED_API_KEY=your_key`
+- Windows: `set FRED_API_KEY=your_key`
+
+Without a key, the panel uses the saved copy in `data/vix.csv`, so the dashboard still runs.
 
 ## Panel 4: Relationship over Time — *Is the link between two rivals stable from year to year?*
 
