@@ -331,7 +331,9 @@ prices is a weaker trading signal.
 """)
     # choose the pair and the z-score window
     with gr.Row():
-        pair_dropdown = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair")
+        # hidden in the group dashboard (its top selector sets it), shown when run on its own
+        pair_dropdown = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair",
+                                    visible=__name__ == "__main__")
         z_slider = gr.Slider(20, 120, value=60, step=10,
                              label="Spread z-score window (trading days)")
     # Play / Pause buttons and the year slider on one row
