@@ -151,7 +151,13 @@ def panel1(first_year=2000, last_year=2026, alpha=0.05, bonferroni=False, view="
     return make_heatmap(results, cutoff, view, pair)
 
 def build_panel1():
-    """Panel 1 for the dashboard: the heatmap plus its controls."""
+    gr.Markdown("""## Panel 1: Which rival pairs are really tethered?
+Tests all 190 pairs of our 20 stocks to see which prices share a long-run link. Hover over any square for exact values.
+- **Top-right half:** the cointegration p-value. Darker blue = stronger evidence the pair is tethered. A white dot = below your significance level.
+- **Bottom-left half:** correlation of daily returns. Red = move together, blue = move opposite.
+- **Outlines:** black = the 10 rival pairs, red = the pair chosen in the top dropdown.
+
+**How to read it:** if a rival pair is dark with a dot, it is tethered and a gap between the prices is a stronger trading signal. If it is red but has no dot, the stocks move together day to day but have no lasting link, so a gap may never close.""")
     with gr.Accordion("How to read the heatmap", open=False):
         gr.Markdown("Each square compares two stocks, and the 10 rival pairs have black outlines, with the chosen pair in red. "
                     "The top-right half shows the cointegration p-value: darker blue means stronger evidence the two prices are tethered. "
