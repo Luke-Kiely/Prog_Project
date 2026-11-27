@@ -6,7 +6,7 @@
 
 ## How to run
 
-**Requirements:** Python 3.10 or newer (tested on Python 3.13, macOS).
+**Requirements:** Python 3.11 or newer (tested on Python 3.13, macOS).
 
 1. Clone the repository and open the folder:
    git clone https://github.com/Luke-Kiely/Prog_Project.git
