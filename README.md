@@ -57,6 +57,13 @@ Panel 1 asks whether rival stocks are tethered. Panel 2 asks what happens if you
 
 The fair value comes from a rolling 60-day regression of log prices, using only data available up to the previous day, rather than simply rebasing both stocks to 100. This is deliberate: rivals rarely move one-for-one, and the regression estimates how they actually move together, so signals aren't triggered by normal differences between the two companies. The gap is then converted into a z-score so that "unusually wide" means the same thing across every pair and time period. Trades open at ±2 and close when the gap returns to zero, or at a ±3.5 stop-loss. Results are shown before trading costs, which Panel 3 then accounts for.
 
+### How to use
+1. **Pick a pair** in the dropdown at the top of the dashboard.
+2. **Choose a time period** with the 1Y / 3Y / 5Y / 10Y / All buttons below the chart. The headline trade count, win rate and total return update to match.
+3. **Hover** over any ▲ / ▼ entry marker or white exit marker for that trade's direction, dates, days held and profit or loss. Hover over a P&L bar for the running total.
+4. **Zoom** by dragging across any of the three charts, which share one time axis, and double-click to reset.
+5. **Read the guide** on the right of the chart for what each line, marker and threshold means.
+
 ## Panel 3: Strategy Optimisation - *Does the best setting still work on new data?*
 
 **Author:** Mathew Hirsch · **File:** `panel3_optimisation.py`
