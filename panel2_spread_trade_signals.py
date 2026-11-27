@@ -146,7 +146,7 @@ def explain(label):
 
 def build_panel2():
   gr.Markdown("""
-              Panel 2 - Does the gap between rivals offer reliable trade signals?)
+              ## Panel 2 - Does the gap between rivals offer reliable trade signals?)
               """)
   with gr.Row():
     pair = gr.Radio(LABELS, value=LABELS[0], visible=False)   # hidden: the dashboard's top dropdown sets the pair
