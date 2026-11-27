@@ -45,7 +45,7 @@ STRESS_LEVEL = 20                           # VIX at or above this = stressed ma
 def load_prices():
     """Download prices from Yahoo Finance, or use the saved copy if that fails."""
     try:
-        prices = yf.download(TICKERS, start="2000-01-01", end="2026-11-21", auto_adjust=True, progress=False)["Close"]
+        prices = yf.download(TICKERS, start="2000-01-01", auto_adjust=True, progress=False)["Close"]
         missing = [ticker for ticker in TICKERS if prices[ticker].isna().all()]
         if missing:
             raise ValueError(f"no prices for {missing}")

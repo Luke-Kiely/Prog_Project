@@ -40,20 +40,17 @@ CARD = "flex:1; background:#1a1d23; border-radius:10px; padding:12px 16px; color
 
 
 def load_prices() -> pd.DataFrame:
-    """Gets the daily closing prices for all tickers, either from a saved CSV or by downloading."""
-    if PRICE_FILE.exists():
-        print("Using saved copy:", PRICE_FILE)
-        return pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
+    """Downloads the latest prices from Yahoo Finance, or uses the saved CSV if that fails."""
     try:
         prices = yf.download(TICKERS, start=START, auto_adjust=True, progress=False)["Close"]
+        missing = [ticker for ticker in TICKERS if prices[ticker].isna().all()]
+        if missing:
+            raise ValueError(f"no prices for {missing}")
+        print("Using live prices from Yahoo Finance")
+        return prices
     except Exception as err:
-        raise RuntimeError(f"Could not download prices ({err}).") from err
-    prices = prices.dropna(axis=1, how="all")  # drops tickers that failed to download
-    if len(prices.columns) == len(TICKERS):  # only saves if every ticker is downloaded
-        PRICE_FILE.parent.mkdir(exist_ok=True)
-        prices.to_csv(PRICE_FILE)
-        print("Downloaded once and saved:", PRICE_FILE)
-    return prices
+        print("Yahoo Finance unavailable, using saved copy:", err)
+        return pd.read_csv(PRICE_FILE, index_col=0, parse_dates=True)
 
 
 # Load the data
@@ -334,7 +331,9 @@ prices is a weaker trading signal.
 """)
     # choose the pair and the z-score window
     with gr.Row():
-        pair_dropdown = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair")
+        # hidden in the group dashboard (its top selector sets it), shown when run on its own
+        pair_dropdown = gr.Dropdown(list(PAIRS), value=list(PAIRS)[0], label="Rival pair",
+                                    visible=__name__ == "__main__")
         z_slider = gr.Slider(20, 120, value=60, step=10,
                              label="Spread z-score window (trading days)")
     # Play / Pause buttons and the year slider on one row
@@ -351,20 +350,18 @@ prices is a weaker trading signal.
         with gr.Row(min_height=420):
             history_plot = gr.Plot(first_history, show_label=False)
     # the detail behind the guide above, folded away until clicked
-    with gr.Accordion("More detail: reading the charts, data and method", open=False):
+    with gr.Accordion("More detail: the charts, data and method", open=False):
         gr.Markdown(f"""
-**Reading the charts**
-- **Beta:** a beta of 0.85 means stock A moved 0.85% on average for every 1% move in B.
-- **R-squared:** how much of A's daily movement B explains: 0 = no link, 1 = lockstep.
-- **Top chart:** B's daily move across, A's daily move up. The white line is that year's
-  regression line: its slope is beta, and the closer the dots hug it, the higher R-squared.
-  The dashed line is beta = 1, where both stocks move by the same percentage.
-- **Dot colour:** how far apart the two prices were that day compared with normal (the
-  spread z-score). Red = A unusually expensive compared with B, blue = unusually cheap.
-- **Signal days:** days beyond plus or minus {SIGNAL_Z}. **Gaps closed** counts how many of
-  those gaps came back to normal within {CLOSE_DAYS} trading days.
-- **Bottom chart:** blue bars = R-squared and white line = beta for every year, with the
-  chosen year picked out.
+**More on the charts**
+- **Beta example:** 0.85 means stock A moved 0.85% on average for every 1% move in B.
+- **R-squared:** 0 = no link, 1 = lockstep. The closer the top chart's dots hug the white
+  line, the higher it is.
+- **Dashed line:** beta = 1, where both stocks move by the same percentage.
+- **Dot colour:** the spread z-score, meaning how far apart the two prices were that day
+  compared with their recent normal.
+- **Signal days:** days with a z-score beyond plus or minus {SIGNAL_Z}. **Gaps closed:** how
+  many of those came back within {CLOSE_Z} of normal in the next {CLOSE_DAYS} trading days,
+  keeping that day's hedge ratio fixed.
 
 **Data**
 - Daily closing prices adjusted for splits and dividends, from Yahoo Finance using the
@@ -381,10 +378,8 @@ prices is a weaker trading signal.
 - Years with fewer than {MIN_DAYS} trading days are left out.
 
 **Caveats**
-- **Gaps closed:** for each signal day, whether the spread came back within {CLOSE_Z} of
-  its average in the next {CLOSE_DAYS} trading days, keeping that day's hedge ratio fixed.
-  It shows whether the gap tends to close, not whether a trade would have made money
-  after costs (Panels 2 and 3 look at trading).
+- Gaps closed shows whether the gap tends to close, not whether a trade would have made
+  money after costs (Panels 2 and 3 look at trading).
 - Beta and R-squared measure how the stocks move day to day, not whether their prices
   stay together in the long run (Panel 1's cointegration test).
 """)
