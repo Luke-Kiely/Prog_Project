@@ -259,8 +259,7 @@ def build_panel3():
                 "Sources: Yahoo Finance via yfinance, VIX from the FRED API.")
     with gr.Row():
         with gr.Column():
-            pair = gr.Dropdown(list(PAIRS), value="KO vs PEP", label="Rival pair")
-            sample = gr.Radio(["In-sample", "Out-of-sample"], value="In-sample", label="Show")
+            pair = gr.Dropdown(list(PAIRS), value="KO vs PEP", label="Rival pair", visible="hidden")   # hidden, the group selector controls it            sample = gr.Radio(["In-sample", "Out-of-sample"], value="In-sample", label="Show")
             in_sample_pct = gr.Slider(50, 90, value=70, step=5, label="In-sample period (% of days)")
             cost_bps = gr.Slider(0, 20, value=5, step=1, label="Trading cost per trade (basis points)")
             gr.Markdown(EXPLANATION)
